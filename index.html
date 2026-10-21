@@ -3,34 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Dashboard Geoespacial - Línea 2 y 4 (Fenómeno del Niño)</title>
-    
-    <!-- Librería de Mapas: Leaflet CSS -->
+    <title>Gestión de Riesgos FEN - Línea 2 y 4</title>
+    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <!-- Hoja de Estilos Propia -->
+    <!-- Estilos Propios -->
     <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-    <!-- Pantalla de Bloqueo / Login Firebase (Oculta por defecto para desarrollo) -->
-    <div id="login-overlay" style="display: none;">
-        <div class="login-box">
-            <h2>Acceso Restringido</h2>
-            <p>Consorcio Constructor L2L4</p>
-            <button id="btnLogin">Iniciar Sesión (Firebase IAM)</button>
-        </div>
-    </div>
-
-    <!-- Contenedor Principal del Dashboard -->
     <div class="dashboard-container">
         
-        <!-- Panel Izquierdo (1/3 Escritorio | Bottom Sheet Móvil) -->
-        <aside class="side-panel" id="sidePanel">
-            <!-- Handle para arrastrar en móviles -->
-            <div class="mobile-handle" id="mobileHandle"></div>
-            
+        <!-- PANEL IZQUIERDO (1/5 del espacio) -->
+        <aside class="side-panel">
             <header class="panel-header">
-                <h1>Gestión de Riesgos FEN</h1>
+                <h2>Gestión de Riesgos FEN</h2>
                 <p>Línea 2 y 4 del Metro de Lima</p>
                 <div class="telemetry">
                     <span id="onlineUsers">🟢 1 en línea</span>
@@ -38,46 +24,82 @@
                 </div>
             </header>
 
-            <section class="panel-section filters">
-                <h3>Tablero Andon (Capas)</h3>
-                <div class="toggle-group">
-                    <button class="btn-toggle active" id="btnRaster">Topografía (Ráster)</button>
-                    <!-- Control de opacidad futuro -->
+            <!-- SECCIÓN 1: FILTROS -->
+            <section class="panel-section">
+                <h3>Filtros de Búsqueda</h3>
+                <div class="filter-group">
+                    <label>Filtrar por ID:</label>
+                    <input type="text" id="filterId" placeholder="Ej. E26" class="search-input">
                 </div>
-                <div class="toggle-group">
-                    <button class="btn-toggle" id="btnInundacion">Inundación (CENEPRED)</button>
-                    <button class="btn-toggle" id="btnHuaycos">Mov. Masas (CENEPRED)</button>
+                <div class="filter-group">
+                    <label>Filtrar por Distrito:</label>
+                    <input type="text" id="filterDistrito" placeholder="Ej. Ate, Callao..." class="search-input">
                 </div>
-                
-                <h3>Filtro Rápido (Gemba)</h3>
-                <input type="text" id="searchEstructura" placeholder="Ej. Buscar E26..." class="search-input">
+                <div class="filter-group">
+                    <label>Ramal / Línea:</label>
+                    <select id="filterLinea" class="search-input">
+                        <option value="">-- Todos --</option>
+                        <option value="2">Línea 2</option>
+                        <option value="4">Línea 4</option>
+                    </select>
+                </div>
             </section>
 
-            <section class="panel-section analysis" id="analysisSection">
-                <h3>Análisis y Mitigación (PMBOK)</h3>
-                <div id="analysisContent">
-                    <p><i>Seleccione una capa de riesgo o busque una estructura para visualizar las estrategias de respuesta (Lean Construction).</i></p>
+            <div class="aesthetic-separator"></div>
+
+            <!-- SECCIÓN 2: CAPAS (TABLERO ANDON) -->
+            <section class="panel-section">
+                <h3>Capas del Mapa</h3>
+                <div class="toggle-group">
+                    <label><input type="checkbox" id="chkDistritos" checked> Delimitación Distrital</label>
+                    <label><input type="checkbox" id="chkTopografia"> Topografía (Ráster MDE)</label>
+                    <label><input type="checkbox" id="chkInundacion"> Peligro Inundación</label>
+                    <label><input type="checkbox" id="chkHuaycos"> Peligro Mov. Masas</label>
+                </div>
+            </section>
+
+            <div class="aesthetic-separator"></div>
+
+            <!-- SECCIÓN 3: TABLA DE NIVELES DE PELIGRO (CSV Vinculado) -->
+            <section class="panel-section table-section">
+                <h3>Matriz de Peligros</h3>
+                <div class="table-container">
+                    <table id="riskTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Inundación</th>
+                                <th>Mov. Masas</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <!-- Datos inyectados por JS -->
+                        </tbody>
+                    </table>
                 </div>
             </section>
 
             <footer class="panel-footer">
-                <p><strong>Fuentes:</strong> Informe N° 69-2026/SENAMHI | CENEPRED</p>
-                <p>Diseño: Vladimir Casas</p>
-                <!-- Botón para ver el README -->
-                <a href="https://github.com/VlaCasPa/Mapa-de-Peligros-FER-2026-L2L4" target="_blank" class="btn-readme">📄 Información del Repositorio (README)</a>
+                <a href="https://github.com/VlaCasPa/Mapa-de-Peligros-FER-2026-L2L4" target="_blank" class="btn-readme">📄 Info del Repositorio (README)</a>
             </footer>
         </aside>
 
-        <!-- Panel Derecho (2/3 Escritorio | 100% Móvil) -->
+        <!-- PANEL DERECHO: MAPA (4/5 del espacio) -->
         <main class="map-container">
-            <!-- Div donde Leaflet inyectará el mapa -->
             <div id="map"></div>
+            <!-- Leyenda Dinámica Inferior Derecha -->
+            <div id="mapLegend" class="map-legend">
+                <h4>Leyenda</h4>
+                <div id="legendContent">Seleccione una capa de riesgo</div>
+            </div>
         </main>
     </div>
 
-    <!-- Librerías JS: Leaflet -->
+    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Script Propio -->
+    <!-- PapaParse para leer el CSV oficial -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- Script principal -->
     <script src="app.js"></script>
 </body>
 </html>
