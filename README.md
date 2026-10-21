@@ -76,6 +76,11 @@ El cruce espacial de las estaciones con los mapas de peligro arroja tres zonas d
 
 ---
 
+## 🔐 Arquitectura del Sistema y Accesibilidad
+* **Control de Acceso:** Integrado con Google Firebase (`MetroL2-IAM-Central`) para restringir la visualización únicamente al personal autorizado del Consorcio Constructor.
+* **Telemetría en Tiempo Real:** Monitorización de usuarios activos y registro histórico de visitas mediante Firebase Realtime Database.
+* **Diseño Responsivo (Mobile/Web):** Interfaz adaptativa. En escritorio utiliza una grilla 1/3 (Analítica) y 2/3 (Mapa). En dispositivos móviles, el mapa se expande al 100% integrando un panel inferior deslizable (*Bottom Sheet*) optimizado para el trabajo en campo (Gemba).
+
 ## 📂 Estructura del Repositorio
 
 *   📁 `datos_vectoriales/`: Contiene los archivos GeoJSON optimizados (Límites, Líneas de Metro, Estaciones, Franja Marginal ANA, Polígonos de Peligro CENEPRED).
@@ -86,3 +91,5 @@ El cruce espacial de las estaciones con los mapas de peligro arroja tres zonas d
 **Diseño e Ingeniería de Permisos:** Vladimir Casas  
 **Software GIS:** RustGIS / QGIS  
 **Actualización:** Octubre 2026
+
+
