@@ -80,7 +80,8 @@
             </section>
 
             <footer class="panel-footer">
-                <a href="https://github.com/VlaCasPa/Mapa-de-Peligros-FER-2026-L2L4" target="_blank" class="btn-readme">📄 Info del Repositorio (README)</a>
+                <!-- Botón que abre la ventana emergente del README -->
+                <button id="btnOpenReadme" class="btn-readme">📄 Información del Repositorio (README)</button>
             </footer>
         </aside>
 
@@ -93,6 +94,39 @@
                 <div id="legendContent">Seleccione una capa de riesgo</div>
             </div>
         </main>
+    </div>
+
+    <!-- VENTANA EMERGENTE (MODAL) PARA EL README -->
+    <div id="readmeModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <button id="btnCloseReadme" class="modal-close">&times;</button>
+            <div class="markdown-body">
+                <h1>🗺️ Dashboard Geoespacial de Riesgos: Línea 2 y Línea 4 del Metro de Lima ante el Fenómeno del Niño</h1>
+                <p><strong>Sistema de Alerta Temprana y Toma de Decisiones Estratégicas para Infraestructura Subterránea</strong></p>
+                <p>Este repositorio contiene la arquitectura de datos geoespaciales, los mapas base y el análisis topográfico necesarios para evaluar y mitigar los impactos del Fenómeno del Niño (lluvias intensas 2026-2027) sobre los frentes de obra y estructuras definitivas del primer metro subterráneo del Perú.</p>
+                
+                <h2>🎯 Objetivo del Proyecto</h2>
+                <p>Transformar la cartografía estática oficial del Estado Peruano en un <strong>Dashboard de Gestión Visual</strong> dinámico. El panel (dividido en 1/5 de panel de control y 4/5 de mapa interactivo) permite a las gerencias de construcción, ingeniería y permisos identificar visualmente las estructuras críticas y aplicar presupuestos de contingencia de manera proactiva.</p>
+                
+                <h2>🧠 Filosofía de Gestión</h2>
+                <p>Este repositorio está estructurado bajo dos grandes marcos de trabajo:</p>
+                <ul>
+                    <li><strong>PMBOK (Gestión de Riesgos del Proyecto):</strong> Evoluciona la identificación del riesgo hacia un <em>Plan de Respuesta a los Riesgos</em> con sustento científico.</li>
+                    <li><strong>Lean Construction (Gestión Visual / Tablero Andon):</strong> Funciona como un sistema de alerta (Visual Management) para asegurar el flujo de construcción y evitar paralizaciones.</li>
+                </ul>
+
+                <h2>🚧 Zonificación y Mitigación</h2>
+                <ul>
+                    <li><strong>Zona 1 (Callao / L4):</strong> Inundación Alta por topografía plana (cota 0). Mitigación: Elevación de brocales y motobombas de alto caudal.</li>
+                    <li><strong>Zona 2 (Lima Centro):</strong> Inundación Media. Monitoreo estándar de sumideros.</li>
+                    <li><strong>Zona 3 (Ate / L2):</strong> Movimientos en Masa (Huaycos) Muy Alto por activación de quebradas en estribaciones andinas. Mitigación: Barreras dinámicas New Jersey y desvíos de escorrentía.</li>
+                </ul>
+                
+                <div style="text-align: center; margin-top: 25px;">
+                    <button id="btnCloseModalBottom" class="btn-toggle active" style="width: 200px; display: inline-block;">Volver al Mapa</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Leaflet JS -->
