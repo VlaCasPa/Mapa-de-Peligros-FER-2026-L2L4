@@ -1,11 +1,12 @@
-// 1. MAPA BASE: OpenStreetMap estilizado con tu clase CSS .mapa-google-gris (Sin requerir API Key)
+// 1. MAPA BASE: Google Maps oficial con tu filtro de gris tenue (.mapa-google-gris)
 const map = L.map('map', { zoomControl: false }).setView([-12.0464, -77.0428], 11);
 L.control.zoom({ position: 'topright' }).addTo(map);
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors',
-    maxZoom: 19,
-    className: 'mapa-google-gris' // Aplica tu filtro de gris tenue perfecto
+// Capa de teselas oficial de Google Maps (Estándar de tus otros repositorios)
+L.tileLayer('https://mt1.google.com/vt/lyrs=m@129&x={x}&y={y}&z={z}', {
+    attribution: '&copy; Google Maps',
+    maxZoom: 20,
+    className: 'mapa-google-gris' // Aplica el filtro de escala de grises, brillo y contraste
 }).addTo(map);
 
 // 2. CONFIGURACIÓN DE COLORES NORMADOS CENEPRED
