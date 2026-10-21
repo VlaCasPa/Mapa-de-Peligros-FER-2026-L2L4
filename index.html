@@ -1,1 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Gestión de Riesgos FEN - Línea 2 y 4</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Estilos Propios -->
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
 
+    <div class="dashboard-container">
+        
+        <!-- PANEL IZQUIERDO (1/5 del espacio) -->
+        <aside class="side-panel">
+            <header class="panel-header">
+                <h2>Gestión de Riesgos FEN</h2>
+                <p>Línea 2 y 4 del Metro de Lima</p>
+                <div class="telemetry">
+                    <span id="onlineUsers">🟢 1 en línea</span>
+                    <span id="totalVisits">👁️ 1,250 visitas</span>
+                </div>
+            </header>
+
+            <!-- SECCIÓN 1: FILTROS -->
+            <section class="panel-section">
+                <h3>Filtros de Búsqueda</h3>
+                <div class="filter-group">
+                    <label>Filtrar por ID:</label>
+                    <input type="text" id="filterId" placeholder="Ej. E26" class="search-input">
+                </div>
+                <div class="filter-group">
+                    <label>Filtrar por Distrito:</label>
+                    <input type="text" id="filterDistrito" placeholder="Ej. Ate, Callao..." class="search-input">
+                </div>
+                <div class="filter-group">
+                    <label>Ramal / Línea:</label>
+                    <select id="filterLinea" class="search-input">
+                        <option value="">-- Todos --</option>
+                        <option value="2">Línea 2</option>
+                        <option value="4">Línea 4</option>
+                    </select>
+                </div>
+            </section>
+
+            <div class="aesthetic-separator"></div>
+
+            <!-- SECCIÓN 2: CAPAS (TABLERO ANDON) -->
+            <section class="panel-section">
+                <h3>Capas del Mapa</h3>
+                <div class="toggle-group">
+                    <label><input type="checkbox" id="chkDistritos" checked> Delimitación Distrital</label>
+                    <label><input type="checkbox" id="chkTopografia"> Topografía (Ráster MDE)</label>
+                    <label><input type="checkbox" id="chkInundacion"> Peligro Inundación</label>
+                    <label><input type="checkbox" id="chkHuaycos"> Peligro Mov. Masas</label>
+                </div>
+            </section>
+
+            <div class="aesthetic-separator"></div>
+
+            <!-- SECCIÓN 3: TABLA DE NIVELES DE PELIGRO -->
+            <section class="panel-section table-section">
+                <h3>Matriz de Peligros</h3>
+                <div class="table-container">
+                    <table id="riskTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Inundación</th>
+                                <th>Mov. Masas</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <!-- Datos inyectados por JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <footer class="panel-footer">
+                <button id="btnOpenReadme" class="btn-readme">📄 Información del Repositorio (README)</button>
+            </footer>
+        </aside>
+
+        <!-- PANEL DERECHO: MAPA (4/5 del espacio) -->
+        <main class="map-container">
+            <div id="map"></div>
+            <!-- Leyenda Dinámica Inferior Derecha -->
+            <div id="mapLegend" class="map-legend">
+                <h4>Leyenda</h4>
+                <div id="legendContent">Seleccione una capa de riesgo</div>
+            </div>
+        </main>
+    </div>
+
+    <!-- VENTANA EMERGENTE (MODAL) PARA EL README -->
+    <div id="readmeModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <button id="btnCloseReadme" class="modal-close">&times;</button>
+            <div class="markdown-body">
+                <h1>🗺️ Dashboard Geoespacial de Riesgos: Línea 2 y Línea 4 del Metro de Lima ante el Fenómeno del Niño</h1>
+                <p><strong>Sistema de Alerta Temprana y Toma de Decisiones Estratégicas para Infraestructura Subterránea</strong></p>
+                <p>Este repositorio contiene la arquitectura de datos geoespaciales, los mapas base y el análisis topográfico necesarios para evaluar y mitigar los impactos del Fenómeno del Niño (lluvias intensas 2026-2027) sobre los frentes de obra y estructuras definitivas del primer metro subterráneo del Perú.</p>
+                
+                <h2>🎯 Objetivo del Proyecto</h2>
+                <p>Transformar la cartografía estática oficial del Estado Peruano en un <strong>Dashboard de Gestión Visual</strong> dinámico[cite: 63]. El panel (dividido en 1/5 de panel de control y 4/5 de mapa interactivo) permite a las gerencias de construcción, ingeniería y permisos identificar visualmente las estructuras críticas y aplicar presupuestos de contingencia de manera proactiva.</p>
+                
+                <h2>🧠 Filosofía de Gestión</h2>
+                <p>Este repositorio está estructurado bajo dos grandes marcos de trabajo:</p>
+                <ul>
+                    <li><strong>PMBOK (Gestión de Riesgos del Proyecto):</strong> Evoluciona la identificación del riesgo hacia un <em>Plan de Respuesta a los Riesgos</em> con sustento científico.</li>
+                    <li><strong>Lean Construction (Gestión Visual / Tablero Andon):</strong> Funciona como un sistema de alerta (Visual Management) para asegurar el flujo de construcción y evitar paralizaciones.</li>
+                </ul>
+
+                <h2>🚧 Zonificación y Mitigación</h2>
+                <ul>
+                    <li><strong>Zona 1 (Callao / L4):</strong> Inundación Alta por topografía plana (cota 0). Mitigación: Elevación de brocales y motobombas de alto caudal.</li>
+                    <li><strong>Zona 2 (Lima Centro):</strong> Inundación Media. Monitoreo estándar de sumideros.</li>
+                    <li><strong>Zona 3 (Ate / L2):</strong> Movimientos en Masa (Huaycos) Muy Alto por activación de quebradas en estribaciones andinas. Mitigación: Barreras dinámicas New Jersey y desvíos de escorrentía.</li>
+                </ul>
+                
+                <div style="text-align: center; margin-top: 25px;">
+                    <button id="btnCloseModalBottom" class="btn-toggle active" style="width: 200px; display: inline-block;">Volver al Mapa</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- PapaParse para leer el CSV oficial -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- Script principal -->
+    <script src="app.js"></script>
+</body>
+</html>
