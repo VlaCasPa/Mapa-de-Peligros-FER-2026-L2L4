@@ -2,13 +2,20 @@
 const map = L.map('map', { zoomControl: false }).setView([-12.0464, -77.0428], 11);
 L.control.zoom({ position: 'topright' }).addTo(map);
 
-L.tileLayer('https://mt1.google.com/vt/lyrs=m@129&x={x}&y={y}&z={z}', {
+// Capa Base 1: Google Maps Gris Tenue (Predeterminada)
+const googleGrisLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=m@129&x={x}&y={y}&z={z}', {
     attribution: '&copy; Google Maps',
     maxZoom: 20,
     className: 'mapa-google-gris'
 }).addTo(map);
 
-// 2. CONFIGURACIÓN DE COLORES NORMADOS CENEPRED (Para Mapa y Tabla)
+// Capa Base 2: Topografía / Relieve (OpenTopoMap como alternativa web de MDE)
+const topografiaLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+    maxZoom: 17,
+    attribution: 'Map data: &copy; OpenTopoMap contributors'
+});
+
+// 2. CONFIGURACIÓN DE COLORES NORMADOS CENEPRED
 function getColorPeligro(nivel) {
     if (!nivel) return '#ffffff';
     let n = String(nivel).toUpperCase().trim();
@@ -31,28 +38,23 @@ let layerRios, layerLineas, layerDistritos, layerEstructuras, layerInundacion, l
 let tableDataMaster = [];
 const baseUrl = 'datos_vectoriales/';
 
-// --- A. CAPA BASE FIJA: RÍOS ---
+// --- A. CAPA FIJA: RÍOS ---
 fetch(baseUrl + 'RIOS%20RIMAC%20CHILLON.geojson')
     .then(res => res.json())
     .then(data => {
         layerRios = L.geoJSON(data, { style: { color: '#00bcd4', weight: 3, opacity: 0.8 } }).addTo(map);
     });
 
-// --- B. CAPA BASE FIJA: LÍNEAS 2 Y 4 (Línea continua, 2 puntos más gruesa: weight 5.5) ---
+// --- B. CAPA FIJA: LÍNEAS 2 Y 4 (Continuas y gruesas) ---
 fetch(baseUrl + 'Lineas%20L2L4.geojson')
     .then(res => res.json())
     .then(data => {
         layerLineas = L.geoJSON(data, { 
-            style: { 
-                color: '#0b3d59', 
-                weight: 5.5,          // Más gruesa y visible
-                opacity: 0.9,
-                dashArray: null       // Línea completamente continua
-            } 
+            style: { color: '#0b3d59', weight: 5.5, opacity: 0.9, dashArray: null } 
         }).addTo(map);
     });
 
-// --- C. CAPA BASE FIJA: ESTRUCTURAS (Punto negro + Texto ID al costado) ---
+// --- C. CAPA FIJA: ESTRUCTURAS ---
 fetch(baseUrl + 'ESTRUCTURAS%20L2L4.geojson')
     .then(res => res.json())
     .then(data => {
@@ -113,7 +115,7 @@ fetch(baseUrl + 'PELIGRO%20MOVIMIENTOS%20EN%20MASAS%20LIMA%20Y%20CALLAO.geojson'
     });
 
 
-// 4. CARGA DE TABLA CSV OFICIAL Y PINTADO DE CELDAS POR COLOR
+// 4. CARGA DE TABLA CSV OFICIAL Y PINTADO DE CELDAS
 const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTE27I4VwWlYKQEgCkNRcGydFG8zFseeR5_0SFF3F_-HEW_VLBPUY_G8uCuexKw2NkkIEq3Wl1i7ipE/pub?gid=1027540316&single=true&output=csv';
 
 Papa.parse(csvUrl, {
@@ -154,7 +156,6 @@ function renderTable(data) {
             <td style="background-color: ${colorMasas}; color: ${textMasas}; font-weight: 500;">${masasVal}</td>
         `;
         
-        // Evento Responsivo: Clic en fila centra el mapa en la estructura
         tr.addEventListener('click', () => {
             document.querySelectorAll('#tableBody tr').forEach(el => el.classList.remove('selected-row'));
             tr.classList.add('selected-row');
@@ -174,10 +175,21 @@ function renderTable(data) {
 }
 
 
-// 5. CONTROL DE CHECKBOXES (Capas y Leyenda)
+// 5. CONTROL DE CHECKBOXES (Capas, Topografía exclusiva y Leyenda)
 document.getElementById('chkDistritos').addEventListener('change', function() {
     if(this.checked) map.addLayer(layerDistritos);
     else map.removeLayer(layerDistritos);
+});
+
+// Control exclusivo del mapa base Topográfico vs Google Gris
+document.getElementById('chkTopografia').addEventListener('change', function() {
+    if(this.checked) {
+        map.removeLayer(googleGrisLayer);
+        topografiaLayer.addTo(map);
+    } else {
+        map.removeLayer(topografiaLayer);
+        googleGrisLayer.addTo(map);
+    }
 });
 
 document.getElementById('chkInundacion').addEventListener('change', function() {
@@ -245,7 +257,6 @@ btnOpen.addEventListener('click', () => { modal.style.display = 'flex'; });
 btnClose.addEventListener('click', () => { modal.style.display = 'none'; });
 btnCloseBottom.addEventListener('click', () => { modal.style.display = 'none'; });
 
-// Cerrar si hace clic fuera del contenido del modal
 modal.addEventListener('click', (e) => {
     if (e.target === modal) { modal.style.display = 'none'; }
 });
