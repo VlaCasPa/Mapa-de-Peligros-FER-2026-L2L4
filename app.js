@@ -1,9 +1,9 @@
-// 1. MAPA BASE: Google Maps Estilo Gris Tenue (CartoDB Positron)
+// 1. MAPA BASE: Google Maps Estilo Gris Tenue (CartoDB Positron limpio)
 const map = L.map('map', { zoomControl: false }).setView([-12.0464, -77.0428], 11);
 L.control.zoom({ position: 'topright' }).addTo(map);
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; OpenStreetMap &copy; CARTO',
+    attribution: '&copy; CARTO',
     subdomains: 'abcd',
     maxZoom: 20
 }).addTo(map);
@@ -20,11 +20,11 @@ function getColorPeligro(nivel) {
 }
 
 // 3. VARIABLES GLOBALES DE CAPAS
-let layerRios, layerLineas, layerDistritos, layerEstructuras, layerInundacion, layerHuaycos, layerRaster;
+let layerRios, layerLineas, layerDistritos, layerEstructuras, layerInundacion, layerHuaycos;
 let tableDataMaster = [];
 const baseUrl = 'datos_vectoriales/';
 
-// --- A. CAPA BASE FIJA: RÍOS (Celeste/Azul) ---
+// --- A. CAPA BASE FIJA: RÍOS ---
 fetch(baseUrl + 'RIOS%20RIMAC%20CHILLON.geojson')
     .then(res => res.json())
     .then(data => {
@@ -38,18 +38,19 @@ fetch(baseUrl + 'Lineas%20L2L4.geojson')
         layerLineas = L.geoJSON(data, { style: { color: '#0b3d59', weight: 3.5, dashArray: '4, 4' } }).addTo(map);
     });
 
-// --- C. CAPA BASE FIJA: ESTRUCTURAS (Círculo negro, borde blanco, texto ID visible) ---
+// --- C. CAPA BASE FIJA: ESTRUCTURAS (Punto negro + Texto ID al costado) ---
 fetch(baseUrl + 'ESTRUCTURAS%20L2L4.geojson')
     .then(res => res.json())
     .then(data => {
         layerEstructuras = L.geoJSON(data, {
             pointToLayer: function (feature, latlng) {
-                let idText = feature.properties.ID || '';
+                let idText = feature.properties.ID || 'N/A';
                 return L.marker(latlng, {
                     icon: L.divIcon({
-                        className: 'custom-div-icon',
-                        html: `<div class="custom-marker" style="width:20px; height:20px;">${idText.substring(0,3)}</div>`,
-                        iconSize: [20, 20]
+                        className: 'custom-structure-icon',
+                        html: `<div class="structure-marker-container"><div class="structure-dot"></div><div class="structure-label">${idText}</div></div>`,
+                        iconSize: [60, 20],
+                        iconAnchor: [6, 10]
                     })
                 });
             },
@@ -59,21 +60,17 @@ fetch(baseUrl + 'ESTRUCTURAS%20L2L4.geojson')
         }).addTo(map);
     });
 
-// --- D. CAPA OPCIONAL: LÍMITES DISTRITALES (Transparentes, borde gris) ---
+// --- D. CAPA OPCIONAL: LÍMITES DISTRITALES ---
 fetch(baseUrl + 'DISTRITOS%20DE%20LIMA%20Y%20CALLAO.geojson')
     .then(res => res.json())
     .then(data => {
         layerDistritos = L.geoJSON(data, {
             style: { fillColor: 'transparent', fillOpacity: 0, color: '#888888', weight: 1 }
         });
-        // Por defecto prendida
         if(document.getElementById('chkDistritos').checked) layerDistritos.addTo(map);
     });
 
-// --- E. CAPA OPCIONAL: RÁSTER TOPOGRAFÍA ---
-// (Simulado con overlay transparente o imagen en carpeta raster si está disponible)
-
-// --- F. CAPA OPCIONAL: INUNDACIÓN ---
+// --- E. CAPA OPCIONAL: INUNDACIÓN ---
 fetch(baseUrl + 'PELIGRO%20INUNDACION%20LIMA%20Y%20CALLAO.geojson')
     .then(res => res.json())
     .then(data => {
@@ -87,7 +84,7 @@ fetch(baseUrl + 'PELIGRO%20INUNDACION%20LIMA%20Y%20CALLAO.geojson')
         });
     });
 
-// --- G. CAPA OPCIONAL: HUAYCOS ---
+// --- F. CAPA OPCIONAL: HUAYCOS ---
 fetch(baseUrl + 'PELIGRO%20MOVIMIENTOS%20EN%20MASAS%20LIMA%20Y%20CALLAO.geojson')
     .then(res => res.json())
     .then(data => {
@@ -102,14 +99,15 @@ fetch(baseUrl + 'PELIGRO%20MOVIMIENTOS%20EN%20MASAS%20LIMA%20Y%20CALLAO.geojson'
     });
 
 
-// 4. CARGA DE TABLA CSV OFICIAL Y VINCULACIÓN
+// 4. CARGA DE TABLA CSV OFICIAL Y MAPEADO DE COLUMNAS CORRECTO
 const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTE27I4VwWlYKQEgCkNRcGydFG8zFseeR5_0SFF3F_-HEW_VLBPUY_G8uCuexKw2NkkIEq3Wl1i7ipE/pub?gid=1027540316&single=true&output=csv';
 
 Papa.parse(csvUrl, {
     download: true,
     header: true,
     complete: function(results) {
-        tableDataMaster = results.data.filter(row => row.ID); // Limpiar vacíos
+        // Limpiamos y mapeamos asegurando capturar los nombres exactos de columnas
+        tableDataMaster = results.data.filter(row => row.ID || row.id || row.Id);
         renderTable(tableDataMaster);
     }
 });
@@ -118,18 +116,24 @@ function renderTable(data) {
     const tbody = document.getElementById('tableBody');
     tbody.innerHTML = '';
     data.forEach(row => {
+        let structId = row.ID || row.id || row.Id || '';
+        let inundacionVal = row['Nivel de Peligro por inundación'] || row['Inundación'] || row['inundacion'] || '';
+        let masasVal = row['Nivel de Peligro por movimiento en masas'] || row['Mov. Masas'] || row['mov_masas'] || '';
+
+        if (!structId) return;
+
         let tr = document.createElement('tr');
-        tr.innerHTML = `<td><b>${row.ID}</b></td><td>${row['Nivel de Peligro por inundación'] || ''}</td><td>${row['Nivel de Peligro por movimiento en masas'] || ''}</td>`;
+        tr.innerHTML = `<td><b>${structId}</b></td><td>${inundacionVal}</td><td>${masasVal}</td>`;
         
-        // Evento Responsivo: Clic en la tabla centra el mapa
+        // Evento Responsivo: Clic en fila centra el mapa en la estructura
         tr.addEventListener('click', () => {
             document.querySelectorAll('#tableBody tr').forEach(el => el.classList.remove('selected-row'));
             tr.classList.add('selected-row');
             
-            // Buscar estructura en el mapa y hacer zoom
             if(layerEstructuras) {
                 layerEstructuras.eachLayer(layer => {
-                    if(layer.feature.properties.ID === row.ID) {
+                    let featId = layer.feature.properties.ID || layer.feature.properties.id || '';
+                    if(featId.toUpperCase() === structId.toUpperCase()) {
                         map.setView(layer.getLatLng(), 15);
                         layer.openPopup();
                     }
@@ -141,7 +145,7 @@ function renderTable(data) {
 }
 
 
-// 5. CONTROL DE CHECKBOXES (Prender/Apagar Capas y Leyenda)
+// 5. CONTROL DE CHECKBOXES (Capas y Leyenda)
 document.getElementById('chkDistritos').addEventListener('change', function() {
     if(this.checked) map.addLayer(layerDistritos);
     else map.removeLayer(layerDistritos);
@@ -173,7 +177,6 @@ document.getElementById('chkHuaycos').addEventListener('change', function() {
     }
 });
 
-// Funciones de Leyenda Dinámica
 function updateLegend(tipo) {
     const legend = document.getElementById('legendContent');
     legend.innerHTML = `
@@ -193,6 +196,9 @@ function clearLegend() {
 // 6. FILTROS RÁPIDOS EN EL PANEL
 document.getElementById('filterId').addEventListener('input', function() {
     let val = this.value.toUpperCase();
-    let filtered = tableDataMaster.filter(r => r.ID.toUpperCase().includes(val));
+    let filtered = tableDataMaster.filter(r => {
+        let sId = r.ID || r.id || r.Id || '';
+        return sId.toUpperCase().includes(val);
+    });
     renderTable(filtered);
 });
