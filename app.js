@@ -1,11 +1,12 @@
-// 1. MAPA BASE: Google Maps Estilo Gris Tenue (CartoDB Positron limpio)
+// 1. MAPA BASE: Aplicando tu clase .mapa-google-gris para el estilo idéntico a tus otros repos
 const map = L.map('map', { zoomControl: false }).setView([-12.0464, -77.0428], 11);
 L.control.zoom({ position: 'topright' }).addTo(map);
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
     attribution: '&copy; CARTO',
     subdomains: 'abcd',
-    maxZoom: 20
+    maxZoom: 20,
+    className: 'mapa-google-gris' // <--- AQUÍ APLICAMOS TU FILTRO GRIS TENUE
 }).addTo(map);
 
 // 2. CONFIGURACIÓN DE COLORES NORMADOS CENEPRED
@@ -99,14 +100,13 @@ fetch(baseUrl + 'PELIGRO%20MOVIMIENTOS%20EN%20MASAS%20LIMA%20Y%20CALLAO.geojson'
     });
 
 
-// 4. CARGA DE TABLA CSV OFICIAL Y MAPEADO DE COLUMNAS CORRECTO
+// 4. CARGA DE TABLA CSV OFICIAL Y MAPEADO DE COLUMNAS
 const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTE27I4VwWlYKQEgCkNRcGydFG8zFseeR5_0SFF3F_-HEW_VLBPUY_G8uCuexKw2NkkIEq3Wl1i7ipE/pub?gid=1027540316&single=true&output=csv';
 
 Papa.parse(csvUrl, {
     download: true,
     header: true,
     complete: function(results) {
-        // Limpiamos y mapeamos asegurando capturar los nombres exactos de columnas
         tableDataMaster = results.data.filter(row => row.ID || row.id || row.Id);
         renderTable(tableDataMaster);
     }
