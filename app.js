@@ -27,49 +27,75 @@ function getTextColor(nivel) {
     return '#000000';
 }
 
-// 3. VARIABLES GLOBALES DE CAPAS Y CALIBRACIÓN RÁSTER
+// 3. VARIABLES GLOBALES DE CAPAS Y CALIBRACIÓN EXACTA DEL RÁSTER
 let layerRios, layerLineas, layerDistritos, layerEstructuras, layerInundacion, layerHuaycos;
 let rasterElevationLayer = null;
-let baseRasterBounds = null;
 let tableDataMaster = [];
 const baseUrl = 'datos_vectoriales/';
 
-// Parámetros de compensación fina para alinear la costa continental con los vectores
-// dLng negativo mueve la imagen hacia la izquierda (Oeste) para encajar en La Punta, Chorrillos y Ancón
-let offsetLat = 0.0025;  // Ligero ajuste Norte-Sur
-let offsetLng = -0.0145; // Desplazamiento exacto a la izquierda (Oeste)
-let scaleWidth = 1.000;  // Escala horizontal
-let scaleHeight = 1.000; // Escala vertical
+// Conversor matemático exacto de UTM Zona 18S (EPSG:32718) a WGS84 (Lat/Lng)
+function utm18SToLatLng(easting, northing) {
+    const a = 6378137.0;
+    const f = 1 / 298.257223563;
+    const k0 = 0.9996;
+    const e = Math.sqrt(2 * f - f * f);
+    const e1sq = e * e / (1 - e * e);
+    const x = easting - 500000.0;
+    const y = northing - 10000000.0; // Hemisferio Sur
+    const M = y / k0;
+    const mu = M / (a * (1 - e * e / 4 - 3 * Math.pow(e, 4) / 64 - 5 * Math.pow(e, 6) / 256));
+    const e1 = (1 - Math.sqrt(1 - e * e)) / (1 + Math.sqrt(1 - e * e));
 
-function applyRasterCalibration() {
-    if (!baseRasterBounds) return;
-    
-    const south = baseRasterBounds[0][0];
-    const west = baseRasterBounds[0][1];
-    const north = baseRasterBounds[1][0];
-    const east = baseRasterBounds[1][1];
+    const J1 = (3 * e1 / 2 - 27 * Math.pow(e1, 3) / 32);
+    const J2 = (21 * Math.pow(e1, 2) / 16 - 55 * Math.pow(e1, 4) / 32);
+    const J3 = (151 * Math.pow(e1, 3) / 96);
+    const J4 = (1097 * Math.pow(e1, 4) / 512);
+    const fp = mu + J1 * Math.sin(2 * mu) + J2 * Math.sin(4 * mu) + J3 * Math.sin(6 * mu) + J4 * Math.sin(8 * mu);
 
-    const centerLat = (south + north) / 2;
-    const centerLng = (west + east) / 2;
-    const halfHeight = ((north - south) / 2) * scaleHeight;
-    const halfWidth = ((east - west) / 2) * scaleWidth;
+    const sinFp = Math.sin(fp);
+    const cosFp = Math.cos(fp);
+    const tanFp = Math.tan(fp);
+    const C1 = e1sq * cosFp * cosFp;
+    const T1 = tanFp * tanFp;
+    const R1 = a * (1 - e * e) / Math.pow(1 - e * e * sinFp * sinFp, 1.5);
+    const N1 = a / Math.sqrt(1 - e * e * sinFp * sinFp);
+    const D = x / (N1 * k0);
 
-    const newBounds = [
-        [centerLat - halfHeight + offsetLat, centerLng - halfWidth + offsetLng],
-        [centerLat + halfHeight + offsetLat, centerLng + halfWidth + offsetLng]
+    const Q1 = N1 * tanFp / R1;
+    const Q2 = (D * D / 2);
+    const Q3 = (5 + 3 * T1 + 10 * C1 - 4 * C1 * C1 - 9 * e1sq) * Math.pow(D, 4) / 24;
+    const Q4 = (61 + 90 * T1 + 298 * C1 + 45 * T1 * T1 - 3 * C1 * C1 - 252 * e1sq) * Math.pow(D, 6) / 720;
+    const lat = (fp - Q1 * (Q2 - Q3 + Q4)) * (180 / Math.PI);
+
+    const Q5 = D;
+    const Q6 = (1 + 2 * T1 + C1) * Math.pow(D, 3) / 6;
+    const Q7 = (5 - 2 * C1 + 28 * T1 - 3 * C1 * C1 + 8 * e1sq + 24 * T1 * T1) * Math.pow(D, 5) / 120;
+    const lng = -75.0 + ((Q5 - Q6 + Q7) / cosFp) * (180 / Math.PI); // Meridiano central Zona 18 = -75°
+
+    return [lat, lng];
+}
+
+// Micro-ajuste fino para embonar el borde costero con el polígono distrital
+// Valores negativos en SHIFT_LNG mueven toda la imagen hacia la izquierda sin deformarla
+const SHIFT_LAT = -0.0008; // Ajuste vertical milimétrico
+const SHIFT_LNG = -0.0042; // Mueve ligeramente a la izquierda (Oeste) respecto a la versión anterior
+
+function createOrUpdateRaster(boundsArray) {
+    const calibratedBounds = [
+        [boundsArray[0][0] + SHIFT_LAT, boundsArray[0][1] + SHIFT_LNG],
+        [boundsArray[1][0] + SHIFT_LAT, boundsArray[1][1] + SHIFT_LNG]
     ];
-
     if (rasterElevationLayer) {
-        rasterElevationLayer.setBounds(newBounds);
+        rasterElevationLayer.setBounds(calibratedBounds);
     } else {
-        rasterElevationLayer = L.imageOverlay('datos_raster/elevacion.png', newBounds, {
-            opacity: 0.88,
+        rasterElevationLayer = L.imageOverlay('datos_raster/elevacion.png', calibratedBounds, {
+            opacity: 0.85,
             interactive: false
         });
     }
 }
 
-// Lectura del archivo .pgw + aplicación automática del desplazamiento hacia la izquierda
+// Intento 1: Lectura directa de elevacion.pgw (soporta Grados WGS84 y Metros UTM 18S)
 const imgWidth = 702;
 const imgHeight = 1160;
 
@@ -80,23 +106,31 @@ fetch('datos_raster/elevacion.pgw')
     })
     .then(text => {
         const lines = text.trim().split(/\r?\n/).map(Number);
-        if (lines.length >= 6 && Math.abs(lines[4]) <= 180 && Math.abs(lines[5]) <= 90) {
+        if (lines.length >= 6 && !isNaN(lines[0])) {
             const pixelSizeX = lines[0];
             const pixelSizeY = lines[3]; // Negativo
             const originX = lines[4];
             const originY = lines[5];
 
-            const west = originX - (pixelSizeX / 2);
-            const north = originY - (pixelSizeY / 2);
-            const east = west + (imgWidth * pixelSizeX);
-            const south = north + (imgHeight * pixelSizeY);
+            const minX = originX - (pixelSizeX / 2);
+            const maxY = originY - (pixelSizeY / 2);
+            const maxX = minX + (imgWidth * pixelSizeX);
+            const minY = maxY + (imgHeight * pixelSizeY);
 
-            baseRasterBounds = [[south, west], [north, east]];
-            applyRasterCalibration();
+            // Caso A: El archivo .pgw está en grados geográficos (WGS84)
+            if (Math.abs(originX) <= 180 && Math.abs(originY) <= 90) {
+                createOrUpdateRaster([[minY, minX], [maxY, maxX]]);
+            } 
+            // Caso B: El archivo .pgw está en metros (UTM Zona 18S)
+            else if (originX > 100000 && originY > 8000000) {
+                const sw = utm18SToLatLng(minX, minY);
+                const ne = utm18SToLatLng(maxX, maxY);
+                createOrUpdateRaster([sw, ne]);
+            }
         }
     })
     .catch(err => {
-        console.log("Calibrando con límites continentales de Distritos.");
+        console.log("Usando límites exactos de la capa de Distritos.");
     });
 
 // --- A. CAPA FIJA: RÍOS ---
@@ -137,7 +171,7 @@ fetch(baseUrl + 'ESTRUCTURAS%20L2L4.geojson')
         }).addTo(map);
     });
 
-// --- D. CAPA OPCIONAL: LÍMITES DISTRITALES ---
+// --- D. CAPA OPCIONAL: LÍMITES DISTRITALES (Molde exacto para el Ráster) ---
 fetch(baseUrl + 'DISTRITOS%20DE%20LIMA%20Y%20CALLAO.geojson')
     .then(res => res.json())
     .then(data => {
@@ -146,17 +180,14 @@ fetch(baseUrl + 'DISTRITOS%20DE%20LIMA%20Y%20CALLAO.geojson')
         });
         if(document.getElementById('chkDistritos').checked) layerDistritos.addTo(map);
 
-        // Si el PGW estaba en UTM, usamos el borde de distritos compensando la Isla San Lorenzo
-        if (!baseRasterBounds) {
+        // Si aún no se creó por PGW, ajustamos directamente al molde exacto de los distritos
+        // desplazándolo los -0.0042 grados a la izquierda para encajar la línea de costa
+        if (!rasterElevationLayer) {
             const b = layerDistritos.getBounds();
-            // Excluimos el desfase de la isla San Lorenzo en el borde Oeste (+0.078 grados)
-            baseRasterBounds = [
-                [b.getSouth(), b.getWest() + 0.078],
+            createOrUpdateRaster([
+                [b.getSouth(), b.getWest()],
                 [b.getNorth(), b.getEast()]
-            ];
-            offsetLat = 0.0;
-            offsetLng = 0.0;
-            applyRasterCalibration();
+            ]);
         }
     });
 
