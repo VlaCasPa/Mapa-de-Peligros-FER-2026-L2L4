@@ -1,16 +1,16 @@
-# 🗺️ Dashboard Geoespacial de Riesgos: Línea 2 y Línea 4 del Metro de Lima ante el Fenómeno del Niño
+# 🗺️ Mapa Geoespacial de Riesgos: Línea 2 y Línea 4 del Metro de Lima ante el Fenómeno del Niño FER2026
 
 **Sistema de Alerta Temprana y Toma de Decisiones Estratégicas para Infraestructura Subterránea**
 
-Este repositorio contiene la arquitectura de datos geoespaciales, los mapas base y el análisis topográfico necesarios para evaluar y mitigar los impactos del Fenómeno del Niño (lluvias intensas 2026-2027) sobre los frentes de obra y estructuras definitivas del primer metro subterráneo del Perú.
+Este repositorio contiene la arquitectura de datos geoespaciales, los mapas base y el análisis topográfico necesarios para evaluar y mitigar los impactos del Fenómeno del Niño (lluvias intensas 2026-2027) sobre los frentes de obra y estructuras definitivas del Proyecto.
 
 ---
 
-## 🎯 Objetivo del Proyecto
+## ☑ Objetivo del Proyecto
 
 Transformar la cartografía estática oficial del Estado Peruano en un **Dashboard de Gestión Visual** dinámico. El panel (dividido en 2/3 de mapa interactivo y 1/3 de panel de análisis) permite a las gerencias de construcción, ingeniería y permisos identificar visualmente las estructuras críticas y aplicar presupuestos de contingencia de manera proactiva.
 
-### 🧠 Filosofía de Gestión
+### ☑ Filosofía de Gestión
 Este repositorio está estructurado bajo dos grandes marcos de trabajo:
 *   **PMBOK (Gestión de Riesgos del Proyecto):** Evoluciona la identificación del riesgo hacia un *Plan de Respuesta a los Riesgos* con sustento científico. Permite pasar de la incertidumbre a la mitigación (ej. compras anticipadas de equipos de bombeo).
 *   **Lean Construction (Gestión Visual / Tablero Andon):** Funciona como un sistema de alerta (Visual Management). Al cruzar el cronograma de obra (Lookahead) con este mapa, se asegura el flujo de construcción, evitando cuellos de botella y paralizaciones no planificadas por contingencias climáticas.
