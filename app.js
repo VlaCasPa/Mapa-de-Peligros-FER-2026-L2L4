@@ -2,22 +2,29 @@
 const map = L.map('map', { zoomControl: false }).setView([-12.0464, -77.0428], 11);
 L.control.zoom({ position: 'topright' }).addTo(map);
 
-// Capa de teselas oficial de Google Maps (Estándar de tus otros repositorios)
 L.tileLayer('https://mt1.google.com/vt/lyrs=m@129&x={x}&y={y}&z={z}', {
     attribution: '&copy; Google Maps',
     maxZoom: 20,
-    className: 'mapa-google-gris' // Aplica el filtro de escala de grises, brillo y contraste
+    className: 'mapa-google-gris'
 }).addTo(map);
 
-// 2. CONFIGURACIÓN DE COLORES NORMADOS CENEPRED
+// 2. CONFIGURACIÓN DE COLORES NORMADOS CENEPRED (Para Mapa y Tabla)
 function getColorPeligro(nivel) {
-    if (!nivel) return '#cccccc';
-    let n = nivel.toUpperCase();
+    if (!nivel) return '#ffffff'; // Blanco por defecto si está vacío
+    let n = String(nivel).toUpperCase().trim();
     if (n.includes('MUY ALTO')) return '#d32f2f'; // Rojo
     if (n.includes('ALTO')) return '#f57c00';     // Naranja
     if (n.includes('MEDIO')) return '#fbc02d';    // Amarillo
     if (n.includes('BAJO')) return '#388e3c';     // Verde
-    return '#cccccc';
+    return '#ffffff';
+}
+
+// Función para obtener color de texto legible según el fondo
+function getTextColor(nivel) {
+    if (!nivel) return '#333333';
+    let n = String(nivel).toUpperCase().trim();
+    if (n.includes('MUY ALTO') || n.includes('ALTO') || n.includes('BAJO')) return '#ffffff';
+    return '#000000';
 }
 
 // 3. VARIABLES GLOBALES DE CAPAS
@@ -100,14 +107,15 @@ fetch(baseUrl + 'PELIGRO%20MOVIMIENTOS%20EN%20MASAS%20LIMA%20Y%20CALLAO.geojson'
     });
 
 
-// 4. CARGA DE TABLA CSV OFICIAL Y MAPEADO DE COLUMNAS
+// 4. CARGA DE TABLA CSV OFICIAL Y MAPEADO ROBUSTO DE COLUMNAS
 const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTE27I4VwWlYKQEgCkNRcGydFG8zFseeR5_0SFF3F_-HEW_VLBPUY_G8uCuexKw2NkkIEq3Wl1i7ipE/pub?gid=1027540316&single=true&output=csv';
 
 Papa.parse(csvUrl, {
     download: true,
     header: true,
+    skipEmptyLines: true,
     complete: function(results) {
-        tableDataMaster = results.data.filter(row => row.ID || row.id || row.Id);
+        tableDataMaster = results.data;
         renderTable(tableDataMaster);
     }
 });
@@ -115,15 +123,31 @@ Papa.parse(csvUrl, {
 function renderTable(data) {
     const tbody = document.getElementById('tableBody');
     tbody.innerHTML = '';
+    
     data.forEach(row => {
-        let structId = row.ID || row.id || row.Id || '';
-        let inundacionVal = row['Nivel de Peligro por inundación'] || row['Inundación'] || row['inundacion'] || '';
-        let masasVal = row['Nivel de Peligro por movimiento en masas'] || row['Mov. Masas'] || row['mov_masas'] || '';
+        // Buscamos las llaves de forma flexible ignorando diferencias de acentos o mayúsculas
+        let keys = Object.keys(row);
+        let idKey = keys.find(k => k.toUpperCase().includes('ID'));
+        let inunKey = keys.find(k => k.toUpperCase().includes('INUNDACI'));
+        let masasKey = keys.find(k => k.toUpperCase().includes('MOVIMIENTO') || k.toUpperCase().includes('MASAS'));
+
+        let structId = idKey ? row[idKey] : '';
+        let inundacionVal = inunKey ? row[inunKey] : '';
+        let masasVal = masasKey ? row[masasKey] : '';
 
         if (!structId) return;
 
+        let colorInun = getColorPeligro(inundacionVal);
+        let colorMasas = getColorPeligro(masasVal);
+        let textInun = getTextColor(inundacionVal);
+        let textMasas = getTextColor(masasVal);
+
         let tr = document.createElement('tr');
-        tr.innerHTML = `<td><b>${structId}</b></td><td>${inundacionVal}</td><td>${masasVal}</td>`;
+        tr.innerHTML = `
+            <td><b>${structId}</b></td>
+            <td style="background-color: ${colorInun}; color: ${textInun}; font-weight: 500;">${inundacionVal}</td>
+            <td style="background-color: ${colorMasas}; color: ${textMasas}; font-weight: 500;">${masasVal}</td>
+        `;
         
         // Evento Responsivo: Clic en fila centra el mapa en la estructura
         tr.addEventListener('click', () => {
@@ -133,7 +157,7 @@ function renderTable(data) {
             if(layerEstructuras) {
                 layerEstructuras.eachLayer(layer => {
                     let featId = layer.feature.properties.ID || layer.feature.properties.id || '';
-                    if(featId.toUpperCase() === structId.toUpperCase()) {
+                    if(featId.toUpperCase() === String(structId).toUpperCase()) {
                         map.setView(layer.getLatLng(), 15);
                         layer.openPopup();
                     }
@@ -197,8 +221,10 @@ function clearLegend() {
 document.getElementById('filterId').addEventListener('input', function() {
     let val = this.value.toUpperCase();
     let filtered = tableDataMaster.filter(r => {
-        let sId = r.ID || r.id || r.Id || '';
-        return sId.toUpperCase().includes(val);
+        let keys = Object.keys(r);
+        let idKey = keys.find(k => k.toUpperCase().includes('ID'));
+        let sId = idKey ? r[idKey] : '';
+        return String(sId).toUpperCase().includes(val);
     });
     renderTable(filtered);
 });
