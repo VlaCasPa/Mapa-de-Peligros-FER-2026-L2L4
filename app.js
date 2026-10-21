@@ -11,7 +11,7 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
 
 // 2. Funciones de Estilo (Colores Normados CENEPRED)
 function getColorPeligro(nivel) {
-    if (!nivel) return '#cccccc'; // Gris por defecto si no hay dato
+    if (!nivel) return '#cccccc'; 
     let n = nivel.toUpperCase();
     if (n.includes('MUY ALTO')) return '#d32f2f'; // Rojo
     if (n.includes('ALTO')) return '#f57c00'; // Naranja
@@ -30,25 +30,25 @@ function styleHuaycos(feature) {
 
 // 3. Variables Globales para las capas
 let layerInundacion, layerHuaycos, layerEstructuras, layerLineas, layerRios;
-const baseUrl = 'datos_vectoriales/'; // La carpeta que creaste en GitHub
+const baseUrl = 'datos_vectoriales/'; 
 
 // 4. CARGA DE DATOS GEOJSON DESDE GITHUB (Fetch)
 
-// A. Cargar Ríos y Franja (Celeste)
+// A. Cargar Ríos y Franja
 fetch(baseUrl + 'RIOS%20RIMAC%20CHILLON.geojson')
     .then(res => res.json())
     .then(data => {
         layerRios = L.geoJSON(data, { style: { color: '#00bcd4', weight: 4 } }).addTo(map);
     });
 
-// B. Cargar Trazos de Líneas L2 y L4 (Azul oscuro punteado)
+// B. Cargar Trazos de Líneas L2 y L4
 fetch(baseUrl + 'Lineas%20L2L4.geojson')
     .then(res => res.json())
     .then(data => {
         layerLineas = L.geoJSON(data, { style: { color: '#0b3d59', weight: 4, dashArray: '5, 5' } }).addTo(map);
     });
 
-// C. Cargar Estructuras (Estaciones y Pozos - Puntos blancos con borde azul)
+// C. Cargar Estructuras 
 fetch(baseUrl + 'ESTRUCTURAS%20L2L4.geojson')
     .then(res => res.json())
     .then(data => {
@@ -57,13 +57,12 @@ fetch(baseUrl + 'ESTRUCTURAS%20L2L4.geojson')
                 return L.circleMarker(latlng, { radius: 6, fillColor: "#ffffff", color: "#0b3d59", weight: 2, fillOpacity: 1 });
             },
             onEachFeature: function (feature, layer) {
-                // Pop-up al hacer clic en una estructura
                 layer.bindPopup('<b>ID Estructura: </b>' + (feature.properties.ID || 'N/A'));
             }
-        }).addTo(map); // Estas capas siempre estarán visibles
+        }).addTo(map);
     });
 
-// D. Cargar Peligro Inundación (Cargado en memoria, oculto inicialmente)
+// D. Cargar Peligro Inundación 
 fetch(baseUrl + 'PELIGRO%20INUNDACION%20LIMA%20Y%20CALLAO.geojson')
     .then(res => res.json())
     .then(data => {
@@ -75,7 +74,7 @@ fetch(baseUrl + 'PELIGRO%20INUNDACION%20LIMA%20Y%20CALLAO.geojson')
         });
     });
 
-// E. Cargar Peligro Huaycos (Cargado en memoria, oculto inicialmente)
+// E. Cargar Peligro Huaycos
 fetch(baseUrl + 'PELIGRO%20MOVIMIENTOS%20EN%20MASAS%20LIMA%20Y%20CALLAO.geojson')
     .then(res => res.json())
     .then(data => {
@@ -87,30 +86,27 @@ fetch(baseUrl + 'PELIGRO%20MOVIMIENTOS%20EN%20MASAS%20LIMA%20Y%20CALLAO.geojson'
         });
     });
 
-// 5. LÓGICA DE BOTONES DEL TABLERO ANDON (Prender y apagar mapas)
+// 5. LÓGICA DE BOTONES DEL TABLERO ANDON
 
-// Botón Inundación
 document.getElementById('btnInundacion').addEventListener('click', function() {
     this.classList.toggle('active');
-    document.getElementById('btnHuaycos').classList.remove('active'); // Apagar el otro botón
+    document.getElementById('btnHuaycos').classList.remove('active');
     
-    if (map.hasLayer(layerHuaycos)) map.removeLayer(layerHuaycos); // Apagar el otro mapa
+    if (map.hasLayer(layerHuaycos)) map.removeLayer(layerHuaycos); 
     
     if (this.classList.contains('active')) {
-        map.addLayer(layerInundacion); // Prender mapa inundación
-        layerEstructuras.bringToFront(); // Que las estaciones se vean arriba del color
-        // Cambiar texto de análisis
+        map.addLayer(layerInundacion);
+        if(layerEstructuras) layerEstructuras.bringToFront();
         document.getElementById('analysisContent').innerHTML = `
             <p style="color:#d32f2f"><b>Estructuras en Peligro:</b> PV01BIS hasta E10.</p>
             <p><b>Sustento:</b> Empozamiento por nivel freático superficial y topografía llana (cota 0). El agua no escurre.</p>
-            <p><b>Mitigación recomendada:</b> Elevación de brocales en Pozos de Ventilación y disposición anticipada de motobombas de alto caudal.</p>`;
+            <p><b>Mitigación recomendada:</b> Elevación de brocales en Pozos de Ventilación y disposición anticipada de motobombas.</p>`;
     } else {
         map.removeLayer(layerInundacion);
         document.getElementById('analysisContent').innerHTML = '<p><i>Seleccione una capa de riesgo...</i></p>';
     }
 });
 
-// Botón Movimientos en Masa (Huaycos)
 document.getElementById('btnHuaycos').addEventListener('click', function() {
     this.classList.toggle('active');
     document.getElementById('btnInundacion').classList.remove('active');
@@ -119,11 +115,11 @@ document.getElementById('btnHuaycos').addEventListener('click', function() {
     
     if (this.classList.contains('active')) {
         map.addLayer(layerHuaycos);
-        layerEstructuras.bringToFront();
+        if(layerEstructuras) layerEstructuras.bringToFront();
         document.getElementById('analysisContent').innerHTML = `
             <p style="color:#f57c00"><b>Estructuras en Peligro:</b> E24, E25, E26, E27.</p>
             <p><b>Sustento:</b> Flujo de detritos por reactivación de quebradas secas en estribaciones andinas (Ate/Vitarte).</p>
-            <p><b>Mitigación recomendada:</b> Reforzamiento de cerramientos con barreras New Jersey y desvíos de escorrentía superficial.</p>`;
+            <p><b>Mitigación recomendada:</b> Reforzamiento de cerramientos con barreras New Jersey y desvíos de escorrentía.</p>`;
     } else {
         map.removeLayer(layerHuaycos);
         document.getElementById('analysisContent').innerHTML = '<p><i>Seleccione una capa de riesgo...</i></p>';
