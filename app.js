@@ -9,8 +9,8 @@ const googleGrisLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=m@129&x={x}&
     className: 'mapa-google-gris'
 }).addTo(map);
 
-// Capa Base 2: Tu imagen ráster georreferenciada (elevacion.png) con coordenadas precisas
-const imageBounds = [[-12.52, -77.22], [-11.65, -76.50]]; 
+// Capa Base 2: Tu imagen ráster georreferenciada (elevacion.png) con coordenadas de ajuste fino
+const imageBounds = [[-12.35, -77.30], [-11.60, -76.60]]; 
 const rasterElevationLayer = L.imageOverlay('datos_raster/elevacion.png', imageBounds, {
     opacity: 0.85,
     interactive: false
