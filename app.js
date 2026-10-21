@@ -1,4 +1,4 @@
-// 1. MAPA BASE: Google Maps oficial con tu filtro de gris tenue (.mapa-google-gris)
+// 1. MAPA BASE: Google Maps oficial con tu filtro de gris tenue
 const map = L.map('map', { zoomControl: false }).setView([-12.0464, -77.0428], 11);
 L.control.zoom({ position: 'topright' }).addTo(map);
 
@@ -10,7 +10,7 @@ L.tileLayer('https://mt1.google.com/vt/lyrs=m@129&x={x}&y={y}&z={z}', {
 
 // 2. CONFIGURACIÓN DE COLORES NORMADOS CENEPRED (Para Mapa y Tabla)
 function getColorPeligro(nivel) {
-    if (!nivel) return '#ffffff'; // Blanco por defecto si está vacío
+    if (!nivel) return '#ffffff';
     let n = String(nivel).toUpperCase().trim();
     if (n.includes('MUY ALTO')) return '#d32f2f'; // Rojo
     if (n.includes('ALTO')) return '#f57c00';     // Naranja
@@ -19,7 +19,6 @@ function getColorPeligro(nivel) {
     return '#ffffff';
 }
 
-// Función para obtener color de texto legible según el fondo
 function getTextColor(nivel) {
     if (!nivel) return '#333333';
     let n = String(nivel).toUpperCase().trim();
@@ -39,11 +38,18 @@ fetch(baseUrl + 'RIOS%20RIMAC%20CHILLON.geojson')
         layerRios = L.geoJSON(data, { style: { color: '#00bcd4', weight: 3, opacity: 0.8 } }).addTo(map);
     });
 
-// --- B. CAPA BASE FIJA: LÍNEAS 2 Y 4 ---
+// --- B. CAPA BASE FIJA: LÍNEAS 2 Y 4 (Línea continua, 2 puntos más gruesa: weight 5.5) ---
 fetch(baseUrl + 'Lineas%20L2L4.geojson')
     .then(res => res.json())
     .then(data => {
-        layerLineas = L.geoJSON(data, { style: { color: '#0b3d59', weight: 3.5, dashArray: '4, 4' } }).addTo(map);
+        layerLineas = L.geoJSON(data, { 
+            style: { 
+                color: '#0b3d59', 
+                weight: 5.5,          // Más gruesa y visible
+                opacity: 0.9,
+                dashArray: null       // Línea completamente continua
+            } 
+        }).addTo(map);
     });
 
 // --- C. CAPA BASE FIJA: ESTRUCTURAS (Punto negro + Texto ID al costado) ---
@@ -107,7 +113,7 @@ fetch(baseUrl + 'PELIGRO%20MOVIMIENTOS%20EN%20MASAS%20LIMA%20Y%20CALLAO.geojson'
     });
 
 
-// 4. CARGA DE TABLA CSV OFICIAL Y MAPEADO ROBUSTO DE COLUMNAS
+// 4. CARGA DE TABLA CSV OFICIAL Y PINTADO DE CELDAS POR COLOR
 const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTE27I4VwWlYKQEgCkNRcGydFG8zFseeR5_0SFF3F_-HEW_VLBPUY_G8uCuexKw2NkkIEq3Wl1i7ipE/pub?gid=1027540316&single=true&output=csv';
 
 Papa.parse(csvUrl, {
@@ -125,7 +131,6 @@ function renderTable(data) {
     tbody.innerHTML = '';
     
     data.forEach(row => {
-        // Buscamos las llaves de forma flexible ignorando diferencias de acentos o mayúsculas
         let keys = Object.keys(row);
         let idKey = keys.find(k => k.toUpperCase().includes('ID'));
         let inunKey = keys.find(k => k.toUpperCase().includes('INUNDACI'));
@@ -227,4 +232,20 @@ document.getElementById('filterId').addEventListener('input', function() {
         return String(sId).toUpperCase().includes(val);
     });
     renderTable(filtered);
+});
+
+
+// 7. CONTROL DE LA VENTANA MODAL (README)
+const modal = document.getElementById('readmeModal');
+const btnOpen = document.getElementById('btnOpenReadme');
+const btnClose = document.getElementById('btnCloseReadme');
+const btnCloseBottom = document.getElementById('btnCloseModalBottom');
+
+btnOpen.addEventListener('click', () => { modal.style.display = 'flex'; });
+btnClose.addEventListener('click', () => { modal.style.display = 'none'; });
+btnCloseBottom.addEventListener('click', () => { modal.style.display = 'none'; });
+
+// Cerrar si hace clic fuera del contenido del modal
+modal.addEventListener('click', (e) => {
+    if (e.target === modal) { modal.style.display = 'none'; }
 });
