@@ -27,10 +27,10 @@ function getTextColor(nivel) {
     return '#000000';
 }
 
-// 3. VARIABLES GLOBALES DE CAPAS Y CALIBRACIÓN TOPOGRÁFICA EXACTA
+// 3. VARIABLES GLOBALES DE CAPAS Y CALIBRACIÓN TOPOGRÁFICA FIJA
 let layerRios, layerLineas, layerDistritos, layerEstructuras, layerInundacion, layerHuaycos;
 let rasterElevationLayer = null;
-let rawOriginBounds = null; // Guarda las coordenadas puras sin desfase
+let rawOriginBounds = null;
 let tableDataMaster = [];
 const baseUrl = 'datos_vectoriales/';
 
@@ -76,11 +76,9 @@ function utm18SToLatLng(easting, northing) {
     return [lat, lng];
 }
 
-// COORDENADAS DE COMPENSACIÓN MATEMÁTICA DEFINITIVA (Interpoladas en La Punta - Callao)
-// En 0.0000 estaba ~200m a la derecha; en -0.0042 se pasó ~250m a la izquierda.
-// El punto exacto de encaje costero es SHIFT_LNG = -0.0018 y SHIFT_LAT = +0.0004
-let SHIFT_LAT = 0.0004;
-let SHIFT_LNG = -0.0018;
+// VALORES FIJOS DE CALIBRACIÓN DEFINITIVA OBTENIDOS POR AJUSTE FINO
+const SHIFT_LAT = 0.0020;
+const SHIFT_LNG = 0.0032;
 
 function updateRasterPosition() {
     if (!rawOriginBounds) return;
@@ -95,10 +93,6 @@ function updateRasterPosition() {
             opacity: 0.85,
             interactive: false
         });
-    }
-    const lbl = document.getElementById('calibValues');
-    if (lbl) {
-        lbl.innerText = `Lat: ${SHIFT_LAT.toFixed(4)}° | Lng: ${SHIFT_LNG.toFixed(4)}°`;
     }
 }
 
@@ -285,30 +279,7 @@ function renderTable(data) {
 }
 
 
-// 5. WIDGET DISCRETO DE MICRO-CALIBRACIÓN EN VIVO (Solo visible cuando el Ráster está activo)
-const calibBox = document.createElement('div');
-calibBox.id = 'rasterCalibBox';
-calibBox.style.cssText = 'display:none; position:absolute; bottom:25px; left:25px; background:white; padding:8px 12px; border-radius:6px; box-shadow:0 2px 10px rgba(0,0,0,0.2); z-index:1000; font-size:11px; text-align:center;';
-calibBox.innerHTML = `
-    <div style="font-weight:bold; color:#0b3d59; margin-bottom:4px;">🎯 Ajuste Fino Ráster</div>
-    <div style="display:flex; justify-content:center; gap:4px; margin-bottom:4px;">
-        <button id="btnCalibLeft" style="padding:2px 6px; cursor:pointer;" title="Mover Izquierda">◀</button>
-        <button id="btnCalibUp" style="padding:2px 6px; cursor:pointer;" title="Mover Arriba">▲</button>
-        <button id="btnCalibDown" style="padding:2px 6px; cursor:pointer;" title="Mover Abajo">▼</button>
-        <button id="btnCalibRight" style="padding:2px 6px; cursor:pointer;" title="Mover Derecha">▶</button>
-    </div>
-    <div id="calibValues" style="font-size:10px; color:#555;">Lat: ${SHIFT_LAT.toFixed(4)}° | Lng: ${SHIFT_LNG.toFixed(4)}°</div>
-`;
-document.querySelector('.map-container').appendChild(calibBox);
-
-const STEP = 0.0002; // Medio píxel (~20 metros por clic)
-document.getElementById('btnCalibLeft').addEventListener('click', () => { SHIFT_LNG -= STEP; updateRasterPosition(); });
-document.getElementById('btnCalibRight').addEventListener('click', () => { SHIFT_LNG += STEP; updateRasterPosition(); });
-document.getElementById('btnCalibUp').addEventListener('click', () => { SHIFT_LAT += STEP; updateRasterPosition(); });
-document.getElementById('btnCalibDown').addEventListener('click', () => { SHIFT_LAT -= STEP; updateRasterPosition(); });
-
-
-// 6. CONTROL DE CHECKBOXES (Capas, Topografía exclusiva y Leyenda)
+// 5. CONTROL DE CHECKBOXES (Capas, Topografía exclusiva y Leyenda)
 document.getElementById('chkDistritos').addEventListener('change', function() {
     if(this.checked) map.addLayer(layerDistritos);
     else map.removeLayer(layerDistritos);
@@ -321,14 +292,12 @@ document.getElementById('chkTopografia').addEventListener('change', function() {
             rasterElevationLayer.addTo(map);
             rasterElevationLayer.bringToBack();
         }
-        calibBox.style.display = 'block';
     } else {
         if (rasterElevationLayer && map.hasLayer(rasterElevationLayer)) {
             map.removeLayer(rasterElevationLayer);
         }
         googleGrisLayer.addTo(map);
         googleGrisLayer.bringToBack();
-        calibBox.style.display = 'none';
     }
 });
 
@@ -374,7 +343,7 @@ function clearLegend() {
 }
 
 
-// 7. FILTROS RÁPIDOS EN EL PANEL
+// 6. FILTROS RÁPIDOS EN EL PANEL
 document.getElementById('filterId').addEventListener('input', function() {
     let val = this.value.toUpperCase();
     let filtered = tableDataMaster.filter(r => {
@@ -387,7 +356,7 @@ document.getElementById('filterId').addEventListener('input', function() {
 });
 
 
-// 8. CONTROL DE LA VENTANA MODAL (README)
+// 7. CONTROL DE LA VENTANA MODAL (README)
 const modal = document.getElementById('readmeModal');
 const btnOpen = document.getElementById('btnOpenReadme');
 const btnClose = document.getElementById('btnCloseReadme');
