@@ -9,10 +9,12 @@ const googleGrisLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=m@129&x={x}&
     className: 'mapa-google-gris'
 }).addTo(map);
 
-// Capa Base 2: Topografía / Relieve (OpenTopoMap como alternativa web de MDE)
-const topografiaLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-    maxZoom: 17,
-    attribution: 'Map data: &copy; OpenTopoMap contributors'
+// Capa Base 2: Tu imagen ráster georreferenciada (elevacion.png)
+// Coordenadas aproximadas de la caja contenedora (Bounding Box) para Lima y Callao
+const imageBounds = [[-13.0, -77.8], [-11.0, -76.0]]; 
+const rasterElevationLayer = L.imageOverlay('datos_raster/elevacion.png', imageBounds, {
+    opacity: 0.85,
+    interactive: false
 });
 
 // 2. CONFIGURACIÓN DE COLORES NORMADOS CENEPRED
@@ -175,19 +177,19 @@ function renderTable(data) {
 }
 
 
-// 5. CONTROL DE CHECKBOXES (Capas, Topografía exclusiva y Leyenda)
+// 5. CONTROL DE CHECKBOXES (Capas, Topografía exclusiva con elevacion.png y Leyenda)
 document.getElementById('chkDistritos').addEventListener('change', function() {
     if(this.checked) map.addLayer(layerDistritos);
     else map.removeLayer(layerDistritos);
 });
 
-// Control exclusivo del mapa base Topográfico vs Google Gris
+// Control exclusivo del mapa base: Cambia Google Gris por tu imagen elevacion.png
 document.getElementById('chkTopografia').addEventListener('change', function() {
     if(this.checked) {
         map.removeLayer(googleGrisLayer);
-        topografiaLayer.addTo(map);
+        rasterElevationLayer.addTo(map);
     } else {
-        map.removeLayer(topografiaLayer);
+        map.removeLayer(rasterElevationLayer);
         googleGrisLayer.addTo(map);
     }
 });
