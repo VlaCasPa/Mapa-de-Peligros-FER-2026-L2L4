@@ -3,12 +3,6 @@
     --primary-blue: #0b3d59;
     --bg-panel: #f8f9fa;
     --text-main: #333333;
-    
-    /* Colores Normados de Riesgo */
-    --risk-muy-alto: #d32f2f;
-    --risk-alto: #f57c00;
-    --risk-medio: #fbc02d;
-    --risk-bajo: #388e3c;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -67,6 +61,22 @@ body, html { height: 100%; width: 100%; overflow: hidden; background-color: #eae
 .search-input { width: 100%; min-height: 44px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 1rem; }
 
 .panel-footer { padding: 20px; font-size: 0.8rem; color: #666; text-align: center; margin-top: auto; }
+
+/* Estilo del Botón README */
+.btn-readme {
+    display: block;
+    width: 100%;
+    background-color: #e0e0e0;
+    color: var(--primary-blue);
+    text-decoration: none;
+    padding: 12px;
+    margin-top: 15px;
+    border-radius: 5px;
+    font-weight: bold;
+    transition: background 0.3s;
+}
+.btn-readme:hover { background-color: #cccccc; }
+
 .mobile-handle { display: none; }
 
 /* --- DISEÑO MOBILE-FIRST (Bottom Sheet) --- */
