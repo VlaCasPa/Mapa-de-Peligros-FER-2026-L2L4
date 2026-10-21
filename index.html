@@ -42,7 +42,7 @@
                 <h3>Tablero Andon (Capas)</h3>
                 <div class="toggle-group">
                     <button class="btn-toggle active" id="btnRaster">Topografía (Ráster)</button>
-                    <input type="range" id="rasterOpacity" min="0" max="100" value="70">
+                    <!-- Control de opacidad futuro -->
                 </div>
                 <div class="toggle-group">
                     <button class="btn-toggle" id="btnInundacion">Inundación (CENEPRED)</button>
@@ -63,6 +63,8 @@
             <footer class="panel-footer">
                 <p><strong>Fuentes:</strong> Informe N° 69-2026/SENAMHI | CENEPRED</p>
                 <p>Diseño: Vladimir Casas</p>
+                <!-- Botón para ver el README -->
+                <a href="https://github.com/VlaCasPa/Mapa-de-Peligros-FER-2026-L2L4" target="_blank" class="btn-readme">📄 Información del Repositorio (README)</a>
             </footer>
         </aside>
 
@@ -73,9 +75,8 @@
         </main>
     </div>
 
-    <!-- Librerías JS: Leaflet y Firebase -->
+    <!-- Librerías JS: Leaflet -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Aquí irán los SDK de Firebase cuando los conectes -->
     <!-- Script Propio -->
     <script src="app.js"></script>
 </body>
