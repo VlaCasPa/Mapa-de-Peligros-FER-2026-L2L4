@@ -1,12 +1,11 @@
-// 1. MAPA BASE: Aplicando tu clase .mapa-google-gris para el estilo idéntico a tus otros repos
+// 1. MAPA BASE: OpenStreetMap estilizado con tu clase CSS .mapa-google-gris (Sin requerir API Key)
 const map = L.map('map', { zoomControl: false }).setView([-12.0464, -77.0428], 11);
 L.control.zoom({ position: 'topright' }).addTo(map);
 
-L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; CARTO',
-    subdomains: 'abcd',
-    maxZoom: 20,
-    className: 'mapa-google-gris' // <--- AQUÍ APLICAMOS TU FILTRO GRIS TENUE
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors',
+    maxZoom: 19,
+    className: 'mapa-google-gris' // Aplica tu filtro de gris tenue perfecto
 }).addTo(map);
 
 // 2. CONFIGURACIÓN DE COLORES NORMADOS CENEPRED
