@@ -1,134 +1,198 @@
-// 1. Inicialización del Mapa
+// 1. MAPA BASE: Google Maps Estilo Gris Tenue (CartoDB Positron)
 const map = L.map('map', { zoomControl: false }).setView([-12.0464, -77.0428], 11);
 L.control.zoom({ position: 'topright' }).addTo(map);
 
-// Capa Base: Gris Tenue (para que resalten los colores de CENEPRED)
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
     attribution: '&copy; OpenStreetMap &copy; CARTO',
     subdomains: 'abcd',
     maxZoom: 20
 }).addTo(map);
 
-// 2. Funciones de Estilo (Colores Normados CENEPRED)
+// 2. CONFIGURACIÓN DE COLORES NORMADOS CENEPRED
 function getColorPeligro(nivel) {
-    if (!nivel) return '#cccccc'; 
+    if (!nivel) return '#cccccc';
     let n = nivel.toUpperCase();
     if (n.includes('MUY ALTO')) return '#d32f2f'; // Rojo
-    if (n.includes('ALTO')) return '#f57c00'; // Naranja
-    if (n.includes('MEDIO')) return '#fbc02d'; // Amarillo
-    if (n.includes('BAJO')) return '#388e3c'; // Verde
+    if (n.includes('ALTO')) return '#f57c00';     // Naranja
+    if (n.includes('MEDIO')) return '#fbc02d';    // Amarillo
+    if (n.includes('BAJO')) return '#388e3c';     // Verde
     return '#cccccc';
 }
 
-function styleInundacion(feature) {
-    return { fillColor: getColorPeligro(feature.properties.niv_sinu), weight: 1, opacity: 1, color: '#ffffff', fillOpacity: 0.65 };
-}
+// 3. VARIABLES GLOBALES DE CAPAS
+let layerRios, layerLineas, layerDistritos, layerEstructuras, layerInundacion, layerHuaycos, layerRaster;
+let tableDataMaster = [];
+const baseUrl = 'datos_vectoriales/';
 
-function styleHuaycos(feature) {
-    return { fillColor: getColorPeligro(feature.properties.npel_mm), weight: 1, opacity: 1, color: '#ffffff', fillOpacity: 0.65 };
-}
-
-// 3. Variables Globales para las capas
-let layerInundacion, layerHuaycos, layerEstructuras, layerLineas, layerRios;
-const baseUrl = 'datos_vectoriales/'; 
-
-// 4. CARGA DE DATOS GEOJSON DESDE GITHUB (Fetch)
-
-// A. Cargar Ríos y Franja
+// --- A. CAPA BASE FIJA: RÍOS (Celeste/Azul) ---
 fetch(baseUrl + 'RIOS%20RIMAC%20CHILLON.geojson')
     .then(res => res.json())
     .then(data => {
-        layerRios = L.geoJSON(data, { style: { color: '#00bcd4', weight: 4 } }).addTo(map);
+        layerRios = L.geoJSON(data, { style: { color: '#00bcd4', weight: 3, opacity: 0.8 } }).addTo(map);
     });
 
-// B. Cargar Trazos de Líneas L2 y L4
+// --- B. CAPA BASE FIJA: LÍNEAS 2 Y 4 ---
 fetch(baseUrl + 'Lineas%20L2L4.geojson')
     .then(res => res.json())
     .then(data => {
-        layerLineas = L.geoJSON(data, { style: { color: '#0b3d59', weight: 4, dashArray: '5, 5' } }).addTo(map);
+        layerLineas = L.geoJSON(data, { style: { color: '#0b3d59', weight: 3.5, dashArray: '4, 4' } }).addTo(map);
     });
 
-// C. Cargar Estructuras 
+// --- C. CAPA BASE FIJA: ESTRUCTURAS (Círculo negro, borde blanco, texto ID visible) ---
 fetch(baseUrl + 'ESTRUCTURAS%20L2L4.geojson')
     .then(res => res.json())
     .then(data => {
         layerEstructuras = L.geoJSON(data, {
             pointToLayer: function (feature, latlng) {
-                return L.circleMarker(latlng, { radius: 6, fillColor: "#ffffff", color: "#0b3d59", weight: 2, fillOpacity: 1 });
+                let idText = feature.properties.ID || '';
+                return L.marker(latlng, {
+                    icon: L.divIcon({
+                        className: 'custom-div-icon',
+                        html: `<div class="custom-marker" style="width:20px; height:20px;">${idText.substring(0,3)}</div>`,
+                        iconSize: [20, 20]
+                    })
+                });
             },
             onEachFeature: function (feature, layer) {
-                layer.bindPopup('<b>ID Estructura: </b>' + (feature.properties.ID || 'N/A'));
+                layer.bindPopup(`<b>Estructura ID:</b> ${feature.properties.ID || 'N/A'}`);
             }
         }).addTo(map);
     });
 
-// D. Cargar Peligro Inundación 
+// --- D. CAPA OPCIONAL: LÍMITES DISTRITALES (Transparentes, borde gris) ---
+fetch(baseUrl + 'DISTRITOS%20DE%20LIMA%20Y%20CALLAO.geojson')
+    .then(res => res.json())
+    .then(data => {
+        layerDistritos = L.geoJSON(data, {
+            style: { fillColor: 'transparent', fillOpacity: 0, color: '#888888', weight: 1 }
+        });
+        // Por defecto prendida
+        if(document.getElementById('chkDistritos').checked) layerDistritos.addTo(map);
+    });
+
+// --- E. CAPA OPCIONAL: RÁSTER TOPOGRAFÍA ---
+// (Simulado con overlay transparente o imagen en carpeta raster si está disponible)
+
+// --- F. CAPA OPCIONAL: INUNDACIÓN ---
 fetch(baseUrl + 'PELIGRO%20INUNDACION%20LIMA%20Y%20CALLAO.geojson')
     .then(res => res.json())
     .then(data => {
         layerInundacion = L.geoJSON(data, {
-            style: styleInundacion,
-            onEachFeature: function (feature, layer) {
-                layer.bindPopup('<b>Distrito: </b>' + feature.properties.NOMBDIST + '<br><b>Inundación: </b>' + feature.properties.niv_sinu);
+            style: function(feature) {
+                return { fillColor: getColorPeligro(feature.properties.niv_sinu), weight: 1, color: '#fff', fillOpacity: 0.6 };
+            },
+            onEachFeature: function(feature, layer) {
+                layer.bindPopup(`<b>Distrito:</b> ${feature.properties.NOMBDIST}<br><b>Inundación:</b> ${feature.properties.niv_sinu}`);
             }
         });
     });
 
-// E. Cargar Peligro Huaycos
+// --- G. CAPA OPCIONAL: HUAYCOS ---
 fetch(baseUrl + 'PELIGRO%20MOVIMIENTOS%20EN%20MASAS%20LIMA%20Y%20CALLAO.geojson')
     .then(res => res.json())
     .then(data => {
         layerHuaycos = L.geoJSON(data, {
-            style: styleHuaycos,
-            onEachFeature: function (feature, layer) {
-                layer.bindPopup('<b>Distrito: </b>' + feature.properties.NOMBDIST + '<br><b>Huaycos: </b>' + feature.properties.npel_mm);
+            style: function(feature) {
+                return { fillColor: getColorPeligro(feature.properties.npel_mm), weight: 1, color: '#fff', fillOpacity: 0.6 };
+            },
+            onEachFeature: function(feature, layer) {
+                layer.bindPopup(`<b>Distrito:</b> ${feature.properties.NOMBDIST}<br><b>Mov. Masas:</b> ${feature.properties.npel_mm}`);
             }
         });
     });
 
-// 5. LÓGICA DE BOTONES DEL TABLERO ANDON
 
-document.getElementById('btnInundacion').addEventListener('click', function() {
-    this.classList.toggle('active');
-    document.getElementById('btnHuaycos').classList.remove('active');
-    
-    if (map.hasLayer(layerHuaycos)) map.removeLayer(layerHuaycos); 
-    
-    if (this.classList.contains('active')) {
+// 4. CARGA DE TABLA CSV OFICIAL Y VINCULACIÓN
+const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTE27I4VwWlYKQEgCkNRcGydFG8zFseeR5_0SFF3F_-HEW_VLBPUY_G8uCuexKw2NkkIEq3Wl1i7ipE/pub?gid=1027540316&single=true&output=csv';
+
+Papa.parse(csvUrl, {
+    download: true,
+    header: true,
+    complete: function(results) {
+        tableDataMaster = results.data.filter(row => row.ID); // Limpiar vacíos
+        renderTable(tableDataMaster);
+    }
+});
+
+function renderTable(data) {
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '';
+    data.forEach(row => {
+        let tr = document.createElement('tr');
+        tr.innerHTML = `<td><b>${row.ID}</b></td><td>${row['Nivel de Peligro por inundación'] || ''}</td><td>${row['Nivel de Peligro por movimiento en masas'] || ''}</td>`;
+        
+        // Evento Responsivo: Clic en la tabla centra el mapa
+        tr.addEventListener('click', () => {
+            document.querySelectorAll('#tableBody tr').forEach(el => el.classList.remove('selected-row'));
+            tr.classList.add('selected-row');
+            
+            // Buscar estructura en el mapa y hacer zoom
+            if(layerEstructuras) {
+                layerEstructuras.eachLayer(layer => {
+                    if(layer.feature.properties.ID === row.ID) {
+                        map.setView(layer.getLatLng(), 15);
+                        layer.openPopup();
+                    }
+                });
+            }
+        });
+        tbody.appendChild(tr);
+    });
+}
+
+
+// 5. CONTROL DE CHECKBOXES (Prender/Apagar Capas y Leyenda)
+document.getElementById('chkDistritos').addEventListener('change', function() {
+    if(this.checked) map.addLayer(layerDistritos);
+    else map.removeLayer(layerDistritos);
+});
+
+document.getElementById('chkInundacion').addEventListener('change', function() {
+    let huaycoChk = document.getElementById('chkHuaycos');
+    if(this.checked) {
+        huaycoChk.checked = false;
+        if(map.hasLayer(layerHuaycos)) map.removeLayer(layerHuaycos);
         map.addLayer(layerInundacion);
-        if(layerEstructuras) layerEstructuras.bringToFront();
-        document.getElementById('analysisContent').innerHTML = `
-            <p style="color:#d32f2f"><b>Estructuras en Peligro:</b> PV01BIS hasta E10.</p>
-            <p><b>Sustento:</b> Empozamiento por nivel freático superficial y topografía llana (cota 0). El agua no escurre.</p>
-            <p><b>Mitigación recomendada:</b> Elevación de brocales en Pozos de Ventilación y disposición anticipada de motobombas.</p>`;
+        updateLegend('Inundación');
     } else {
         map.removeLayer(layerInundacion);
-        document.getElementById('analysisContent').innerHTML = '<p><i>Seleccione una capa de riesgo...</i></p>';
+        clearLegend();
     }
 });
 
-document.getElementById('btnHuaycos').addEventListener('click', function() {
-    this.classList.toggle('active');
-    document.getElementById('btnInundacion').classList.remove('active');
-    
-    if (map.hasLayer(layerInundacion)) map.removeLayer(layerInundacion);
-    
-    if (this.classList.contains('active')) {
+document.getElementById('chkHuaycos').addEventListener('change', function() {
+    let inunChk = document.getElementById('chkInundacion');
+    if(this.checked) {
+        inunChk.checked = false;
+        if(map.hasLayer(layerInundacion)) map.removeLayer(layerInundacion);
         map.addLayer(layerHuaycos);
-        if(layerEstructuras) layerEstructuras.bringToFront();
-        document.getElementById('analysisContent').innerHTML = `
-            <p style="color:#f57c00"><b>Estructuras en Peligro:</b> E24, E25, E26, E27.</p>
-            <p><b>Sustento:</b> Flujo de detritos por reactivación de quebradas secas en estribaciones andinas (Ate/Vitarte).</p>
-            <p><b>Mitigación recomendada:</b> Reforzamiento de cerramientos con barreras New Jersey y desvíos de escorrentía.</p>`;
+        updateLegend('Movimientos en Masa');
     } else {
         map.removeLayer(layerHuaycos);
-        document.getElementById('analysisContent').innerHTML = '<p><i>Seleccione una capa de riesgo...</i></p>';
+        clearLegend();
     }
 });
 
-// Lógica para Mobile Bottom Sheet
-const sidePanel = document.getElementById('sidePanel');
-const mobileHandle = document.getElementById('mobileHandle');
-mobileHandle.addEventListener('click', () => {
-    sidePanel.classList.toggle('expanded');
+// Funciones de Leyenda Dinámica
+function updateLegend(tipo) {
+    const legend = document.getElementById('legendContent');
+    legend.innerHTML = `
+        <b>Niveles de ${tipo}</b>
+        <div class="legend-item"><span class="legend-color" style="background:#d32f2f"></span>Muy Alto</div>
+        <div class="legend-item"><span class="legend-color" style="background:#f57c00"></span>Alto</div>
+        <div class="legend-item"><span class="legend-color" style="background:#fbc02d"></span>Medio</div>
+        <div class="legend-item"><span class="legend-color" style="background:#388e3c"></span>Bajo</div>
+    `;
+}
+
+function clearLegend() {
+    document.getElementById('legendContent').innerHTML = 'Seleccione una capa de riesgo';
+}
+
+
+// 6. FILTROS RÁPIDOS EN EL PANEL
+document.getElementById('filterId').addEventListener('input', function() {
+    let val = this.value.toUpperCase();
+    let filtered = tableDataMaster.filter(r => r.ID.toUpperCase().includes(val));
+    renderTable(filtered);
 });
