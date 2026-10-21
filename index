@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Dashboard Geoespacial - Línea 2 y 4 (Fenómeno del Niño)</title>
+    
+    <!-- Librería de Mapas: Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Hoja de Estilos Propia -->
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+    <!-- Pantalla de Bloqueo / Login Firebase (Oculta por defecto para desarrollo) -->
+    <div id="login-overlay" style="display: none;">
+        <div class="login-box">
+            <h2>Acceso Restringido</h2>
+            <p>Consorcio Constructor L2L4</p>
+            <button id="btnLogin">Iniciar Sesión (Firebase IAM)</button>
+        </div>
+    </div>
+
+    <!-- Contenedor Principal del Dashboard -->
+    <div class="dashboard-container">
+        
+        <!-- Panel Izquierdo (1/3 Escritorio | Bottom Sheet Móvil) -->
+        <aside class="side-panel" id="sidePanel">
+            <!-- Handle para arrastrar en móviles -->
+            <div class="mobile-handle" id="mobileHandle"></div>
+            
+            <header class="panel-header">
+                <h1>Gestión de Riesgos FEN</h1>
+                <p>Línea 2 y 4 del Metro de Lima</p>
+                <div class="telemetry">
+                    <span id="onlineUsers">🟢 1 en línea</span>
+                    <span id="totalVisits">👁️ 1,250 visitas</span>
+                </div>
+            </header>
+
+            <section class="panel-section filters">
+                <h3>Tablero Andon (Capas)</h3>
+                <div class="toggle-group">
+                    <button class="btn-toggle active" id="btnRaster">Topografía (Ráster)</button>
+                    <input type="range" id="rasterOpacity" min="0" max="100" value="70">
+                </div>
+                <div class="toggle-group">
+                    <button class="btn-toggle" id="btnInundacion">Inundación (CENEPRED)</button>
+                    <button class="btn-toggle" id="btnHuaycos">Mov. Masas (CENEPRED)</button>
+                </div>
+                
+                <h3>Filtro Rápido (Gemba)</h3>
+                <input type="text" id="searchEstructura" placeholder="Ej. Buscar E26..." class="search-input">
+            </section>
+
+            <section class="panel-section analysis" id="analysisSection">
+                <h3>Análisis y Mitigación (PMBOK)</h3>
+                <div id="analysisContent">
+                    <p><i>Seleccione una capa de riesgo o busque una estructura para visualizar las estrategias de respuesta (Lean Construction).</i></p>
+                </div>
+            </section>
+
+            <footer class="panel-footer">
+                <p><strong>Fuentes:</strong> Informe N° 69-2026/SENAMHI | CENEPRED</p>
+                <p>Diseño: Vladimir Casas</p>
+            </footer>
+        </aside>
+
+        <!-- Panel Derecho (2/3 Escritorio | 100% Móvil) -->
+        <main class="map-container">
+            <!-- Div donde Leaflet inyectará el mapa -->
+            <div id="map"></div>
+        </main>
+    </div>
+
+    <!-- Librerías JS: Leaflet y Firebase -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Aquí irán los SDK de Firebase cuando los conectes -->
+    <!-- Script Propio -->
+    <script src="app.js"></script>
+</body>
+</html>
