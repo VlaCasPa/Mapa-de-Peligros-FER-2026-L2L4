@@ -24,23 +24,29 @@
                 </div>
             </header>
 
-            <!-- SECCIÓN 1: FILTROS -->
+     <!-- SECCIÓN 1: FILTROS ESTRATÉGICOS FEN -->
             <section class="panel-section">
-                <h3>Filtros de Búsqueda</h3>
+                <h3>Filtros de Control FEN</h3>
                 <div class="filter-group">
-                    <label>Filtrar por ID:</label>
-                    <input type="text" id="filterId" placeholder="Ej. E26" class="search-input">
+                    <label>Filtrar por ID de Estructura:</label>
+                    <input type="text" id="filterId" placeholder="Ej. E26, PV01..." class="search-input">
                 </div>
                 <div class="filter-group">
-                    <label>Filtrar por Distrito:</label>
-                    <input type="text" id="filterDistrito" placeholder="Ej. Ate, Callao..." class="search-input">
+                    <label>Filtrar por Tipo de Peligro:</label>
+                    <select id="filterTipoPeligro" class="search-input">
+                        <option value="">-- Todos los Peligros --</option>
+                        <option value="inundacion">Peligro por Inundación</option>
+                        <option value="huaycos">Movimientos en Masa (Huaycos)</option>
+                    </select>
                 </div>
                 <div class="filter-group">
-                    <label>Ramal / Línea:</label>
-                    <select id="filterLinea" class="search-input">
-                        <option value="">-- Todos --</option>
-                        <option value="2">Línea 2</option>
-                        <option value="4">Línea 4</option>
+                    <label>Filtrar por Nivel de Riesgo:</label>
+                    <select id="filterNivelRiesgo" class="search-input">
+                        <option value="">-- Todos los Niveles --</option>
+                        <option value="MUY ALTO">🔴 Muy Alto</option>
+                        <option value="ALTO">🟠 Alto</option>
+                        <option value="MEDIO">🟡 Medio</option>
+                        <option value="BAJO">🟢 Bajo</option>
                     </select>
                 </div>
             </section>
