@@ -405,9 +405,39 @@ document.getElementById('filterTipoPeligro').addEventListener('change', aplicarF
 document.getElementById('filterNivelRiesgo').addEventListener('change', aplicarFiltrosFEN);
 
 
-// --- EXPORTAR TABLA A EXCEL (CSV) ---
+// --- EXPORTAR TABLA A EXCEL NATIVO (Formato XML Tabular por Columnas) ---
 document.getElementById('btnExportExcel').addEventListener('click', function() {
-    let csvContent = "data:text/csv;charset=utf-8,ID,Inundación,Movimientos en Masa\n";
+    let htmlContent = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+            <meta charset="UTF-8">
+            <!--[if gte mso 9]>
+            <xml>
+                <x:ExcelWorkbook>
+                    <x:ExcelWorksheets>
+                        <x:ExcelWorksheet>
+                            <x:Name>Matriz de Riesgos FEN</x:Name>
+                            <x:WorksheetOptions>
+                                <x:DisplayGridlines/>
+                            </x:WorksheetOptions>
+                        </x:ExcelWorksheet>
+                    </x:ExcelWorksheets>
+                </x:ExcelWorkbook>
+            </xml>
+            <![endif]-->
+        </head>
+        <body>
+            <table>
+                <thead>
+                    <tr style="background-color: #0b3d59; color: #ffffff; font-weight: bold;">
+                        <th>ID</th>
+                        <th>Inundación</th>
+                        <th>Movimientos en Masa</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
     tableDataMaster.forEach(row => {
         let keys = Object.keys(row);
         let idKey = keys.find(k => k.toUpperCase().includes('ID'));
@@ -419,14 +449,30 @@ document.getElementById('btnExportExcel').addEventListener('click', function() {
         let masas = masasKey ? row[masasKey] : '';
 
         if(sId) {
-            csvContent += `"${sId}","${inun}","${masas}"\n`;
+            htmlContent += `
+                <tr>
+                    <td>${sId}</td>
+                    <td>${inun}</td>
+                    <td>${masas}</td>
+                </tr>
+            `;
         }
     });
 
-    let encodedUri = encodeURI(csvContent);
+    htmlContent += `
+                </tbody>
+            </table>
+        </body>
+        </html>
+    `;
+
+    // Crear archivo virtual y disparar la descarga directa con extensión .xls compatible con Excel
+    let blob = new Blob([htmlContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
     let link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "Matriz_Riesgos_FEN_L2L4.csv");
+    let url = URL.createObjectURL(blob);
+    
+    link.setAttribute("href", url);
+    link.setAttribute("download", "Matriz_Riesgos_FEN_L2L4.xls");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
