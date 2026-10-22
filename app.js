@@ -27,7 +27,7 @@ function getTextColor(nivel) {
     return '#000000';
 }
 
-// 3. VARIABLES GLOBALES
+// 3. VARIABLES GLOBALES DE CAPAS
 let layerRios, layerLineas, layerDistritos, layerEstructuras, layerInundacion, layerHuaycos;
 let rasterElevationLayer = null;
 let rawOriginBounds = null;
@@ -97,11 +97,11 @@ function updateRasterPosition() {
                 let imagePoint = map.latLngToContainerPoint(rasterElevationLayer.getBounds().getCenter());
                 let pivotX = mapPoint.x - imagePoint.x + (rasterElevationLayer._image.clientWidth / 2);
                 let pivotY = mapPoint.y - imagePoint.y + (rasterElevationLayer._image.clientHeight / 2);
-                rasterElevationLayer._image.style.transformOrigin = `${pivotX}px ${pivotY}px`;
+                rasterElevationLayer._image.style.transformOrigin = `${pivotX}px${pivotY}px`;
             } else {
                 rasterElevationLayer._image.style.transformOrigin = 'center center';
             }
-            rasterElevationLayer._image.style.transform = `rotate(${RASTER_ROTATION}deg)`;
+            rasterElevationLayer._image.style.transform = `rotate(\${RASTER_ROTATION}deg)`;
         }
     } else {
         rasterElevationLayer = L.imageOverlay('datos_raster/elevacion.png', calibratedBounds, {
@@ -112,7 +112,7 @@ function updateRasterPosition() {
     
     const lbl = document.getElementById('calibValues');
     if (lbl) {
-        lbl.innerText = `Lat: ${SHIFT_LAT.toFixed(4)}° | Lng: ${SHIFT_LNG.toFixed(4)}°\nGiro: ${RASTER_ROTATION.toFixed(2)}°`;
+        lbl.innerText = `Lat: \${SHIFT_LAT.toFixed(4)}° | Lng: ${SHIFT_LNG.toFixed(4)}°\nGiro:${RASTER_ROTATION.toFixed(2)}°`;
     }
 }
 
@@ -147,7 +147,7 @@ fetch('datos_raster/elevacion.pgw')
     }).catch(() => {});
 
 
-// --- CARGA DE CAPAS VECTORIALES ---
+// --- CARGA DE CAPAS VECTORIALES CON ORDEN JERÁRQUICO PERFECTO ---
 
 // 1. Peligro Inundación
 fetch(baseUrl + 'PELIGRO%20INUNDACION%20LIMA%20Y%20CALLAO.geojson')
@@ -185,7 +185,7 @@ fetch(baseUrl + 'DISTRITOS%20DE%20LIMA%20Y%20CALLAO.geojson')
             style: { fillColor: '#ffffff', fillOpacity: 0.15, color: '#666666', weight: 3, opacity: 0.8 },
             onEachFeature: function (feature, layer) {
                 let nombreDistrito = feature.properties.NOMBDIST || feature.properties.distrito || 'Distrito';
-                layer.bindTooltip(`<b>Distrito:</b> ${nombreDistrito}`, { sticky: true, direction: 'auto' });
+                layer.bindTooltip(`<b>Distrito:</b> \${nombreDistrito}`, { sticky: true, direction: 'auto' });
                 layer.on({
                     mouseover: function (e) {
                         e.target.setStyle({ weight: 4, color: '#0b3d59', fillOpacity: 0.35 });
@@ -241,9 +241,8 @@ fetch(baseUrl + 'ESTRUCTURAS%20L2L4.geojson')
             },
             onEachFeature: function (feature, layer) {
                 let structId = String(feature.properties.ID || '').toUpperCase();
-                layer.bindPopup(`<b>Estructura ID:</b> ${structId}`);
+                layer.bindPopup(`<b>Estructura ID:</b> \${structId}`);
                 
-                // Clic en el marcador del mapa selecciona la fila en la tabla
                 layer.on('click', () => {
                     seleccionarFilaEnTabla(structId);
                 });
@@ -292,401 +291,6 @@ function renderTable(data) {
         tr.dataset.huaycos = String(masasVal).toUpperCase();
 
         tr.innerHTML = `
-            <td><b>${structId}</b></td>
-            <td style="background-color: ${colorInun}; color: ${textInun}; font-weight: 600; text-align: center;">${inundacionVal}</td>
-            <td style="background-color: ${colorMasas}; color: ${textMasas}; font-weight: 600; text-align: center;">${masasVal}</td>
-        `;
-        
-        tr.addEventListener('click', () => {
-            document.querySelectorAll('#tableBody tr').forEach(el => el.classList.remove('selected-row'));
-            tr.classList.add('selected-row');
-            
-            if(layerEstructuras) {
-                layerEstructuras.eachLayer(layer => {
-                    let featId = layer.feature.properties.ID || layer.feature.properties.id || '';
-                    if(featId.toUpperCase() === String(structId).toUpperCase()) {
-                        map.setView(layer.getLatLng(), 15);
-                        layer.openPopup();
-                    }
-                });
-            }
-        });
-        tbody.appendChild(tr);
-    });
-}
-
-// Función para seleccionar la fila en la tabla desde el mapa
-function seleccionarFilaEnTabla(structId) {
-    const rows = document.querySelectorAll('#tableBody tr');
-    let encontrada = null;
-    rows.forEach(tr => {
-        tr.classList.remove('selected-row');
-        if (tr.dataset.structId === structId) {
-            encontrada = tr;
-        }
-    });
-    if (encontrada) {
-        encontrada.classList.add('selected-row');
-        encontrada.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-}
-
-
-// --- 5. LÓGICA DE FILTRADO CRUZADO FEN ROBUSTA (MAPA + TABLA) ---
-function aplicarFiltrosFEN() {
-    let textId = document.getElementById('filterId').value.toUpperCase().trim();
-    let tipoPeligro = document.getElementById('filterTipoPeligro').value; // 'inundacion', 'huaycos' o ''
-    let nivelRiesgo = document.getElementById('filterNivelRiesgo').value.toUpperCase().trim(); // 'MUY ALTO', 'ALTO', etc.
-
-    let rows = document.querySelectorAll('#tableBody tr');
-    let idsVisibles = new Set();
-
-    rows.forEach(tr => {
-        let sId = tr.dataset.structId || '';
-        let inun = (tr.dataset.inundacion || '').toUpperCase();
-        let huay = (tr.dataset.huaycos || '').toUpperCase();
-
-        // Limpiar tildes para evitar errores de coincidencia
-        let normalizar = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-
-        let normInun = normalizar(inun);
-        let normHuay = normalizar(huay);
-        let normNivel = normalizar(nivelRiesgo);
-
-        let matchId = !textId || sId.includes(textId);
-        let matchPeligroNivel = true;
-
-        if (nivelRiesgo) {
-            if (tipoPeligro === 'inundacion') {
-                matchPeligroNivel = normInun.includes(normNivel);
-            } else if (tipoPeligro === 'huaycos') {
-                matchPeligroNivel = normHuay.includes(normNivel);
-            } else {
-                // Si no se especifica el tipo, busca en cualquiera de los dos peligros
-                matchPeligroNivel = normInun.includes(normNivel) || normHuay.includes(normNivel);
-            }
-        }
-
-        if (matchId && matchPeligroNivel) {
-            tr.style.display = '';
-            idsVisibles.add(sId);
-        } else {
-            tr.style.display = 'none';
-        }
-    });
-
-    // Actualizar marcadores en el mapa: translúcidos los no filtrados, color de riesgo los filtrados
-    if (layerEstructuras) {
-        layerEstructuras.eachLayer(layer => {
-            let featId = String(layer.feature.properties.ID || layer.feature.properties.id || '').toUpperCase();
-            let elDiv = layer.getElement();
-            if (elDiv) {
-                let labelEl = elDiv.querySelector('.structure-label');
-                if (idsVisibles.has(featId)) {
-                    elDiv.style.opacity = '1';
-                    if (labelEl) {
-                        labelEl.style.backgroundColor = '#d32f2f'; // Destacar etiqueta de alerta
-                        labelEl.style.color = '#ffffff';
-                        labelEl.style.fontWeight = 'bold';
-                    }
-                } else {
-                    elDiv.style.opacity = '0.25'; // Translúcido para el resto
-                    if (labelEl) {
-                        labelEl.style.backgroundColor = '#ffffff';
-                        labelEl.style.color = '#000000';
-                        labelEl.style.fontWeight = 'normal';
-                    }
-                }
-            }
-        });
-    }
-
-    // Auto-encender la capa correspondiente en el mapa
-    if (tipoPeligro === 'inundacion') {
-        let chk = document.getElementById('chkInundacion');
-        if(!chk.checked) { chk.checked = true; chk.dispatchEvent(new Event('change')); }
-    } else if (tipoPeligro === 'huaycos') {
-        let chk = document.getElementById('chkHuaycos');
-        if(!chk.checked) { chk.checked = true; chk.dispatchEvent(new Event('change')); }
-    }
-}
-
-    // Actualizar marcadores en el mapa: translúcidos los no filtrados, color de riesgo los filtrados (sin halo rojo)
-    if (layerEstructuras) {
-        layerEstructuras.eachLayer(layer => {
-            let featId = String(layer.feature.properties.ID || layer.feature.properties.id || '').toUpperCase();
-            let elDiv = layer.getElement();
-            if (elDiv) {
-                let labelEl = elDiv.querySelector('.structure-label');
-                if (idsVisibles.has(featId)) {
-                    elDiv.style.opacity = '1';
-                    if (labelEl) {
-                        labelEl.style.backgroundColor = '#d32f2f'; // Pintar etiqueta del color seleccionado de alerta
-                        labelEl.style.color = '#ffffff';
-                        labelEl.style.fontWeight = 'bold';
-                    }
-                } else {
-                    elDiv.style.opacity = '0.25'; // Translúcido para los demás
-                    if (labelEl) {
-                        labelEl.style.backgroundColor = '#ffffff';
-                        labelEl.style.color = '#000000';
-                        labelEl.style.fontWeight = 'normal';
-                    }
-                }
-            }
-        });
-    }
-
-    if (tipoPeligro === 'inundacion') {
-        document.getElementById('chkInundacion').checked = true;
-        document.getElementById('chkInundacion').dispatchEvent(new Event('change'));
-    } else if (tipoPeligro === 'huaycos') {
-        document.getElementById('chkHuaycos').checked = true;
-        document.getElementById('chkHuaycos').dispatchEvent(new Event('change'));
-    }
-}
-
-document.getElementById('filterId').addEventListener('input', aplicarFiltrosFEN);
-document.getElementById('filterTipoPeligro').addEventListener('change', aplicarFiltrosFEN);
-document.getElementById('filterNivelRiesgo').addEventListener('change', aplicarFiltrosFEN);
-
-
-// --- EXPORTAR TABLA A EXCEL NATIVO (Formato XML Tabular por Columnas) ---
-document.getElementById('btnExportExcel').addEventListener('click', function() {
-    let htmlContent = `
-        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-        <head>
-            <meta charset="UTF-8">
-            <!--[if gte mso 9]>
-            <xml>
-                <x:ExcelWorkbook>
-                    <x:ExcelWorksheets>
-                        <x:ExcelWorksheet>
-                            <x:Name>Matriz de Riesgos FEN</x:Name>
-                            <x:WorksheetOptions>
-                                <x:DisplayGridlines/>
-                            </x:WorksheetOptions>
-                        </x:ExcelWorksheet>
-                    </x:ExcelWorksheets>
-                </x:ExcelWorkbook>
-            </xml>
-            <![endif]-->
-        </head>
-        <body>
-            <table>
-                <thead>
-                    <tr style="background-color: #0b3d59; color: #ffffff; font-weight: bold;">
-                        <th>ID</th>
-                        <th>Inundación</th>
-                        <th>Movimientos en Masa</th>
-                    </tr>
-                </thead>
-                <tbody>
-    `;
-
-    tableDataMaster.forEach(row => {
-        let keys = Object.keys(row);
-        let idKey = keys.find(k => k.toUpperCase().includes('ID'));
-        let inunKey = keys.find(k => k.toUpperCase().includes('INUNDACI'));
-        let masasKey = keys.find(k => k.toUpperCase().includes('MOVIMIENTO') || k.toUpperCase().includes('MASAS'));
-
-        let sId = idKey ? row[idKey] : '';
-        let inun = inunKey ? row[inunKey] : '';
-        let masas = masasKey ? row[masasKey] : '';
-
-        if(sId) {
-            htmlContent += `
-                <tr>
-                    <td>${sId}</td>
-                    <td>${inun}</td>
-                    <td>${masas}</td>
-                </tr>
-            `;
-        }
-    });
-
-    htmlContent += `
-                </tbody>
-            </table>
-        </body>
-        </html>
-    `;
-
-    // Crear archivo virtual y disparar la descarga directa con extensión .xls compatible con Excel
-    let blob = new Blob([htmlContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-    let link = document.createElement("a");
-    let url = URL.createObjectURL(blob);
-    
-    link.setAttribute("href", url);
-    link.setAttribute("download", "Matriz_Riesgos_FEN_L2L4.xls");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-});
-
-
-// 5. WIDGET DE CALIBRACIÓN RÁSTER
-const calibBox = document.createElement('div');
-calibBox.id = 'rasterCalibBox';
-calibBox.style.cssText = 'display:none; position:absolute; bottom:25px; left:25px; background:white; padding:8px 12px; border-radius:6px; box-shadow:0 2px 10px rgba(0,0,0,0.2); z-index:1000; font-size:11px; text-align:center; width: 175px;';
-calibBox.innerHTML = `
-    <div style="font-weight:bold; color:#0b3d59; margin-bottom:4px;">🎯 Calibración con Pin</div>
-    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:3px; margin-bottom:4px;">
-        <button id="btnRotCCW" style="padding:3px; cursor:pointer;" title="Giro Antihorario">↺</button>
-        <button id="btnCalibUp" style="padding:3px; cursor:pointer;" title="Mover Arriba">▲</button>
-        <button id="btnRotCW" style="padding:3px; cursor:pointer;" title="Giro Horario">↻</button>
-        <button id="btnCalibLeft" style="padding:3px; cursor:pointer;" title="Mover Izquierda">◀</button>
-        <button id="btnCalibDown" style="padding:3px; cursor:pointer;" title="Mover Abajo">▼</button>
-        <button id="btnCalibRight" style="padding:3px; cursor:pointer;" title="Mover Derecha">▶</button>
-    </div>
-    <button id="btnToggleAnchor" style="width:100%; padding:3px; background:#f0f4f8; border:1px solid #0b3d59; color:#0b3d59; font-weight:bold; cursor:pointer; border-radius:3px; margin-bottom:4px;">📍 Colocar Pin Anclaje</button>
-    <div id="calibValues" style="font-size:9.5px; color:#555; white-space: pre-line;">Lat: 0° | Lng: 0°\nGiro: 0°</div>
-`;
-document.querySelector('.map-container').appendChild(calibBox);
-
-const STEP_POS = 0.0002;
-const STEP_ROT = 0.25;
-
-document.getElementById('btnCalibLeft').addEventListener('click', () => { SHIFT_LNG -= STEP_POS; updateRasterPosition(); });
-document.getElementById('btnCalibRight').addEventListener('click', () => { SHIFT_LNG += STEP_POS; updateRasterPosition(); });
-document.getElementById('btnCalibUp').addEventListener('click', () => { SHIFT_LAT += STEP_POS; updateRasterPosition(); });
-document.getElementById('btnCalibDown').addEventListener('click', () => { SHIFT_LAT -= STEP_POS; updateRasterPosition(); });
-document.getElementById('btnRotCCW').addEventListener('click', () => { RASTER_ROTATION -= STEP_ROT; updateRasterPosition(); });
-document.getElementById('btnRotCW').addEventListener('click', () => { RASTER_ROTATION += STEP_ROT; updateRasterPosition(); });
-
-document.getElementById('btnToggleAnchor').addEventListener('click', () => {
-    isAnchorModeActive = !isAnchorModeActive;
-    const btn = document.getElementById('btnToggleAnchor');
-    if (isAnchorModeActive) {
-        btn.style.background = '#0b3d59';
-        btn.style.color = 'white';
-        btn.innerText = 'Click en mapa para Pin...';
-    } else {
-        btn.style.background = '#f0f4f8';
-        btn.style.color = '#0b3d59';
-        btn.innerText = '📍 Colocar Pin Anclaje';
-    }
-});
-
-map.on('click', function(e) {
-    if (!isAnchorModeActive) return;
-    if (anchorMarker) map.removeLayer(anchorMarker);
-    
-    const pinIcon = L.divIcon({
-        className: 'custom-pin-icon',
-        html: `<div style="background:#d32f2f; color:white; width:22px; height:22px; border-radius:50%; border:2px solid white; display:flex; align-items:center; justify-content:center; font-size:12px; box-shadow:0 2px 5px rgba(0,0,0,0.3);">📍</div>`,
-        iconSize: [22, 22],
-        iconAnchor: [11, 11]
-    });
-
-    anchorMarker = L.marker(e.latlng, { icon: pinIcon }).addTo(map);
-    anchorMarker.bindPopup(`<b>Punto de Anclaje</b><br>Lat: ${e.latlng.lat.toFixed(4)}, Lng: ${e.latlng.lng.toFixed(4)}`).openPopup();
-
-    isAnchorModeActive = false;
-    const btn = document.getElementById('btnToggleAnchor');
-    btn.style.background = '#f0f4f8';
-    btn.style.color = '#0b3d59';
-    btn.innerText = '📍 Pin Fijado (Cambiar)';
-    updateRasterPosition();
-});
-
-
-// 6. CONTROL DE CHECKBOXES
-document.getElementById('chkDistritos').addEventListener('change', function() {
-    if(this.checked) map.addLayer(layerDistritos);
-    else map.removeLayer(layerDistritos);
-});
-
-document.getElementById('chkTopografia').addEventListener('change', function() {
-    if(this.checked) {
-        map.removeLayer(googleGrisLayer);
-        if (rasterElevationLayer) {
-            rasterElevationLayer.addTo(map);
-            rasterElevationLayer.bringToBack();
-            if (rasterElevationLayer._image) {
-                rasterElevationLayer._image.style.transform = `rotate(${RASTER_ROTATION}deg)`;
-            }
-        }
-        calibBox.style.display = 'block';
-        updateRasterPosition();
-    } else {
-        if (rasterElevationLayer && map.hasLayer(rasterElevationLayer)) {
-            map.removeLayer(rasterElevationLayer);
-        }
-        if (anchorMarker) {
-            map.removeLayer(anchorMarker);
-            anchorMarker = null;
-        }
-        googleGrisLayer.addTo(map);
-        googleGrisLayer.bringToBack();
-        calibBox.style.display = 'none';
-    }
-});
-
-document.getElementById('chkInundacion').addEventListener('change', function() {
-    let huaycoChk = document.getElementById('chkHuaycos');
-    if(this.checked) {
-        huaycoChk.checked = false;
-        if(map.hasLayer(layerHuaycos)) map.removeLayer(layerHuaycos);
-        if(layerInundacion) {
-            map.addLayer(layerInundacion);
-            if(layerLineas) layerLineas.bringToFront();
-            if(layerEstructuras) layerEstructuras.bringToFront();
-        }
-        updateLegend('Inundación');
-    } else {
-        if(layerInundacion) map.removeLayer(layerInundacion);
-        clearLegend();
-    }
-});
-
-document.getElementById('chkHuaycos').addEventListener('change', function() {
-    let inunChk = document.getElementById('chkInundacion');
-    if(this.checked) {
-        inunChk.checked = false;
-        if(map.hasLayer(layerInundacion)) map.removeLayer(layerInundacion);
-        if(layerHuaycos) {
-            map.addLayer(layerHuaycos);
-            if(layerLineas) layerLineas.bringToFront();
-            if(layerEstructuras) layerEstructuras.bringToFront();
-        }
-        updateLegend('Movimientos en Masa');
-    } else {
-        if(layerHuaycos) map.removeLayer(layerHuaycos);
-        clearLegend();
-    }
-});
-
-function updateLegend(tipo) {
-    const legend = document.getElementById('legendContent');
-    legend.innerHTML = `
-        <b>Niveles de ${tipo}</b>
-        <div class="legend-item"><span class="legend-color" style="background:#d32f2f"></span>Muy Alto</div>
-        <div class="legend-item"><span class="legend-color" style="background:#f57c00"></span>Alto</div>
-        <div class="legend-item"><span class="legend-color" style="background:#fbc02d"></span>Medio</div>
-        <div class="legend-item"><span class="legend-color" style="background:#388e3c"></span>Bajo</div>
-    `;
-}
-
-function clearLegend() {
-    document.getElementById('legendContent').innerHTML = 'Seleccione una capa de riesgo';
-}
-
-
-// 7. FILTROS RÁPIDOS
-document.getElementById('filterId').addEventListener('input', aplicarFiltrosFEN);
-
-
-// 8. CONTROL DE LA VENTANA MODAL (README)
-const modal = document.getElementById('readmeModal');
-const btnOpen = document.getElementById('btnOpenReadme');
-const btnClose = document.getElementById('btnCloseReadme');
-const btnCloseBottom = document.getElementById('btnCloseModalBottom');
-
-btnOpen.addEventListener('click', () => { modal.style.display = 'flex'; });
-btnClose.addEventListener('click', () => { modal.style.display = 'none'; });
-btnCloseBottom.addEventListener('click', () => { modal.style.display = 'none'; });
-
-modal.addEventListener('click', (e) => {
-    if (e.target === modal) { modal.style.display = 'none'; }
-});
+            <td><b>\${structId}</b></td>
+            <td style="background-color: \${colorInun}; color: ${textInun}; font-weight: 600; text-align: center;">${inundacionVal}</td>
+            <td style="background-color: ${colorMasas}; color:${textMasas}; font-weight:
