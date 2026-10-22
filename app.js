@@ -213,7 +213,7 @@ fetch(baseUrl + 'RIOS%20RIMAC%20CHILLON.geojson')
         layerRios = L.geoJSON(data, { style: { color: '#00bcd4', weight: 3, opacity: 0.8 } }).addTo(map);
     });
 
-// 5. Líneas del Metro (L2 y L4) - Grosor incrementado a 7.5
+// 5. Líneas del Metro (L2 y L4) - Grosor de trazo en 7.5
 fetch(baseUrl + 'Lineas%20L2L4.geojson')
     .then(res => res.json())
     .then(data => {
@@ -222,7 +222,7 @@ fetch(baseUrl + 'Lineas%20L2L4.geojson')
         }).addTo(map);
     });
 
-// 6. Estructuras (Con sincronización al hacer clic en el mapa hacia la tabla)
+// 6. Estructuras (Con sincronización bidireccional)
 fetch(baseUrl + 'ESTRUCTURAS%20L2L4.geojson')
     .then(res => res.json())
     .then(data => {
@@ -292,8 +292,8 @@ function renderTable(data) {
 
         tr.innerHTML = `
             <td><b>${structId}</b></td>
-            <td style="background-color: ${colorInun}; color: ${textInun}; font-weight: 600; text-align: center;">${inundacionVal}</td>
-            <td style="background-color: ${colorMasas}; color: ${textMasas}; font-weight: 600; text-align: center;">${masasVal}</td>
+            <td class="td-inundacion" style="background-color: ${colorInun}; color: ${textInun}; font-weight: 600; text-align: center;">${inundacionVal}</td>
+            <td class="td-huaycos" style="background-color: ${colorMasas}; color: ${textMasas}; font-weight: 600; text-align: center;">${masasVal}</td>
         `;
         
         tr.addEventListener('click', () => {
@@ -312,6 +312,8 @@ function renderTable(data) {
         });
         tbody.appendChild(tr);
     });
+
+    aplicarFiltrosFEN();
 }
 
 function seleccionarFilaEnTabla(structId) {
@@ -330,7 +332,7 @@ function seleccionarFilaEnTabla(structId) {
 }
 
 
-// --- LÓGICA DE FILTRADO CRUZADO FEN ROBUSTO (MAPA + TABLA) ---
+// --- LÓGICA DE FILTRADO CRUZADO FEN EXHAUSTIVO (MAPA + TABLA + CONTADORES + ATENUACIÓN) ---
 function aplicarFiltrosFEN() {
     let textId = document.getElementById('filterId').value.toUpperCase().trim();
     let tipoPeligro = document.getElementById('filterTipoPeligro').value;
@@ -338,13 +340,15 @@ function aplicarFiltrosFEN() {
 
     let rows = document.querySelectorAll('#tableBody tr');
     let idsVisibles = new Set();
+    let totalVisibles = 0;
+    let totalGeneral = rows.length;
 
     rows.forEach(tr => {
         let sId = tr.dataset.structId || '';
-        let inun = (tr.dataset.inundacion || '').toUpperCase();
-        let huay = (tr.dataset.huaycos || '').toUpperCase();
+        let inun = (tr.dataset.inundacion || '').toUpperCase().trim();
+        let huay = (tr.dataset.huaycos || '').toUpperCase().trim();
 
-        let normalizar = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+        let normalizar = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, ' ').trim();
 
         let normInun = normalizar(inun);
         let normHuay = normalizar(huay);
@@ -353,25 +357,47 @@ function aplicarFiltrosFEN() {
         let matchId = !textId || sId.includes(textId);
         let matchPeligroNivel = true;
 
-        if (nivelRiesgo) {
+        if (normNivel !== "") {
             if (tipoPeligro === 'inundacion') {
-                matchPeligroNivel = normInun === normNivel || normInun.includes(normNivel);
+                matchPeligroNivel = (normInun === normNivel || normInun.includes(normNivel));
             } else if (tipoPeligro === 'huaycos') {
-                matchPeligroNivel = normHuay === normNivel || normHuay.includes(normNivel);
+                matchPeligroNivel = (normHuay === normNivel || normHuay.includes(normNivel));
             } else {
-                matchPeligroNivel = normInun === normNivel || normInun.includes(normNivel) || normHuay === normNivel || normHuay.includes(normNivel);
+                matchPeligroNivel = (normInun === normNivel || normInun.includes(normNivel) || normHuay === normNivel || normHuay.includes(normNivel));
             }
         }
 
+        let cellInun = tr.querySelector('.td-inundacion');
+        let cellHuay = tr.querySelector('.td-huaycos');
+
         if (matchId && matchPeligroNivel) {
-            tr.style.display = '';
+            tr.classList.remove('filtered-out');
             idsVisibles.add(sId);
+            totalVisibles++;
+
+            // Atenuar en la tabla la columna que NO se está filtrando
+            if (tipoPeligro === 'inundacion') {
+                if(cellInun) cellInun.style.opacity = '1';
+                if(cellHuay) cellHuay.style.opacity = '0.25';
+            } else if (tipoPeligro === 'huaycos') {
+                if(cellInun) cellInun.style.opacity = '0.25';
+                if(cellHuay) cellHuay.style.opacity = '1';
+            } else {
+                if(cellInun) cellInun.style.opacity = '1';
+                if(cellHuay) cellHuay.style.opacity = '1';
+            }
         } else {
-            tr.style.display = 'none';
+            tr.classList.add('filtered-out');
+            if(cellInun) cellInun.style.opacity = '1';
+            if(cellHuay) cellHuay.style.opacity = '1';
         }
     });
 
-    // Actualizar marcadores en el mapa
+    // Actualizar contadores gerenciales
+    document.getElementById('counterBadge').innerText = `${totalVisibles} / ${totalGeneral}`;
+    document.getElementById('tableCounter').innerText = `(${totalVisibles} expuestas)`;
+
+    // Actualizar marcadores en el mapa (Translúcidos los no filtrados)
     if (layerEstructuras) {
         layerEstructuras.eachLayer(layer => {
             let featId = String(layer.feature.properties.ID || layer.feature.properties.id || '').toUpperCase();
