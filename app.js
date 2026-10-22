@@ -27,7 +27,7 @@ function getTextColor(nivel) {
     return '#000000';
 }
 
-// 3. VARIABLES GLOBALES DE CAPAS
+// 3. VARIABLES GLOBALES
 let layerRios, layerLineas, layerDistritos, layerEstructuras, layerInundacion, layerHuaycos;
 let rasterElevationLayer = null;
 let rawOriginBounds = null;
@@ -147,7 +147,7 @@ fetch('datos_raster/elevacion.pgw')
     }).catch(() => {});
 
 
-// --- CARGA DE CAPAS VECTORIALES CON ORDEN JERÁRQUICO PERFECTO ---
+// --- CARGA DE CAPAS VECTORIALES ---
 
 // 1. Peligro Inundación
 fetch(baseUrl + 'PELIGRO%20INUNDACION%20LIMA%20Y%20CALLAO.geojson')
@@ -222,7 +222,7 @@ fetch(baseUrl + 'Lineas%20L2L4.geojson')
         }).addTo(map);
     });
 
-// 6. Estructuras (Círculos negros + Etiquetas ID al frente)
+// 6. Estructuras
 fetch(baseUrl + 'ESTRUCTURAS%20L2L4.geojson')
     .then(res => res.json())
     .then(data => {
@@ -246,7 +246,7 @@ fetch(baseUrl + 'ESTRUCTURAS%20L2L4.geojson')
     });
 
 
-// 4. CARGA DE TABLA CSV OFICIAL Y PINTADO DE CELDAS CON COLORES UNIFICADOS
+// 4. CARGA DE TABLA CSV Y MOTOR DE FILTRADO FEN
 const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTE27I4VwWlYKQEgCkNRcGydFG8zFseeR5_0SFF3F_-HEW_VLBPUY_G8uCuexKw2NkkIEq3Wl1i7ipE/pub?gid=1027540316&single=true&output=csv';
 
 Papa.parse(csvUrl, {
@@ -281,6 +281,10 @@ function renderTable(data) {
         let textMasas = getTextColor(masasVal);
 
         let tr = document.createElement('tr');
+        tr.dataset.structId = String(structId).toUpperCase();
+        tr.dataset.inundacion = String(inundacionVal).toUpperCase();
+        tr.dataset.huaycos = String(masasVal).toUpperCase();
+
         tr.innerHTML = `
             <td><b>${structId}</b></td>
             <td style="background-color: ${colorInun}; color: ${textInun}; font-weight: 600; text-align: center;">${inundacionVal}</td>
@@ -306,7 +310,74 @@ function renderTable(data) {
 }
 
 
-// 5. WIDGET DE CALIBRACIÓN AVANZADA
+// --- 5. LÓGICA DE FILTRADO CRUZADO FEN (MAPA + TABLA) ---
+function aplicarFiltrosFEN() {
+    let textId = document.getElementById('filterId').value.toUpperCase().trim();
+    let tipoPeligro = document.getElementById('filterTipoPeligro').value; // 'inundacion', 'huaycos' o ''
+    let nivelRiesgo = document.getElementById('filterNivelRiesgo').value.toUpperCase(); // 'MUY ALTO', 'ALTO', etc.
+
+    // 1. Filtrar la Tabla
+    let rows = document.querySelectorAll('#tableBody tr');
+    let idsVisibles = new Set();
+
+    rows.forEach(tr => {
+        let sId = tr.dataset.structId;
+        let inun = tr.dataset.inundacion;
+        let huay = tr.dataset.huaycos;
+
+        let matchId = !textId || sId.includes(textId);
+        let matchPeligroNivel = true;
+
+        if (tipoPeligro === 'inundacion' && nivelRiesgo) {
+            matchPeligroNivel = inun.includes(nivelRiesgo);
+        } else if (tipoPeligro === 'huaycos' && nivelRiesgo) {
+            matchPeligroNivel = huay.includes(nivelRiesgo);
+        } else if (!tipoPeligro && nivelRiesgo) {
+            matchPeligroNivel = inun.includes(nivelRiesgo) || huay.includes(nivelRiesgo);
+        }
+
+        if (matchId && matchPeligroNivel) {
+            tr.style.display = '';
+            idsVisibles.add(sId);
+        } else {
+            tr.style.display = 'none';
+        }
+    });
+
+    // 2. Filtrar Estructuras en el Mapa (Resaltar o enfocar las que cumplen el filtro)
+    if (layerEstructuras) {
+        layerEstructuras.eachLayer(layer => {
+            let featId = String(layer.feature.properties.ID || layer.feature.properties.id || '').toUpperCase();
+            let elDiv = layer.getElement();
+            if (elDiv) {
+                if (idsVisibles.has(featId)) {
+                    elDiv.style.opacity = '1';
+                    elDiv.style.filter = 'drop-shadow(0 0 4px #d32f2f)';
+                } else {
+                    elDiv.style.opacity = '0.3';
+                    elDiv.style.filter = 'none';
+                }
+            }
+        });
+    }
+
+    // 3. Activar automáticamente la capa de peligro correspondiente en el mapa si se selecciona un tipo
+    if (tipoPeligro === 'inundacion') {
+        document.getElementById('chkInundacion').checked = true;
+        document.getElementById('chkInundacion').dispatchEvent(new Event('change'));
+    } else if (tipoPeligro === 'huaycos') {
+        document.getElementById('chkHuaycos').checked = true;
+        document.getElementById('chkHuaycos').dispatchEvent(new Event('change'));
+    }
+}
+
+// Escuchadores de eventos para los filtros
+document.getElementById('filterId').addEventListener('input', aplicarFiltrosFEN);
+document.getElementById('filterTipoPeligro').addEventListener('change', aplicarFiltrosFEN);
+document.getElementById('filterNivelRiesgo').addEventListener('change', aplicarFiltrosFEN);
+
+
+// 6. WIDGET DE CALIBRACIÓN RÁSTER
 const calibBox = document.createElement('div');
 calibBox.id = 'rasterCalibBox';
 calibBox.style.cssText = 'display:none; position:absolute; bottom:25px; left:25px; background:white; padding:8px 12px; border-radius:6px; box-shadow:0 2px 10px rgba(0,0,0,0.2); z-index:1000; font-size:11px; text-align:center; width: 175px;';
@@ -372,7 +443,7 @@ map.on('click', function(e) {
 });
 
 
-// 6. CONTROL DE CHECKBOXES Y LEYENDAS UNIFICADAS
+// 7. CONTROL DE CHECKBOXES
 document.getElementById('chkDistritos').addEventListener('change', function() {
     if(this.checked) map.addLayer(layerDistritos);
     else map.removeLayer(layerDistritos);
@@ -452,19 +523,6 @@ function updateLegend(tipo) {
 function clearLegend() {
     document.getElementById('legendContent').innerHTML = 'Seleccione una capa de riesgo';
 }
-
-
-// 7. FILTROS RÁPIDOS
-document.getElementById('filterId').addEventListener('input', function() {
-    let val = this.value.toUpperCase();
-    let filtered = tableDataMaster.filter(r => {
-        let keys = Object.keys(r);
-        let idKey = keys.find(k => k.toUpperCase().includes('ID'));
-        let sId = idKey ? r[idKey] : '';
-        return String(sId).toUpperCase().includes(val);
-    });
-    renderTable(filtered);
-});
 
 
 // 8. CONTROL DE LA VENTANA MODAL (README)
