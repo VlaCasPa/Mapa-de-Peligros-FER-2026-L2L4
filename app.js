@@ -332,29 +332,39 @@ function seleccionarFilaEnTabla(structId) {
 }
 
 
-// --- LÓGICA DE FILTRADO CRUZADO FEN (MAPA + TABLA) ---
+// --- 5. LÓGICA DE FILTRADO CRUZADO FEN ROBUSTA (MAPA + TABLA) ---
 function aplicarFiltrosFEN() {
     let textId = document.getElementById('filterId').value.toUpperCase().trim();
-    let tipoPeligro = document.getElementById('filterTipoPeligro').value;
-    let nivelRiesgo = document.getElementById('filterNivelRiesgo').value.toUpperCase();
+    let tipoPeligro = document.getElementById('filterTipoPeligro').value; // 'inundacion', 'huaycos' o ''
+    let nivelRiesgo = document.getElementById('filterNivelRiesgo').value.toUpperCase().trim(); // 'MUY ALTO', 'ALTO', etc.
 
     let rows = document.querySelectorAll('#tableBody tr');
     let idsVisibles = new Set();
 
     rows.forEach(tr => {
-        let sId = tr.dataset.structId;
-        let inun = tr.dataset.inundacion;
-        let huay = tr.dataset.huaycos;
+        let sId = tr.dataset.structId || '';
+        let inun = (tr.dataset.inundacion || '').toUpperCase();
+        let huay = (tr.dataset.huaycos || '').toUpperCase();
+
+        // Limpiar tildes para evitar errores de coincidencia
+        let normalizar = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
+        let normInun = normalizar(inun);
+        let normHuay = normalizar(huay);
+        let normNivel = normalizar(nivelRiesgo);
 
         let matchId = !textId || sId.includes(textId);
         let matchPeligroNivel = true;
 
-        if (tipoPeligro === 'inundacion' && nivelRiesgo) {
-            matchPeligroNivel = inun.includes(nivelRiesgo);
-        } else if (tipoPeligro === 'huaycos' && nivelRiesgo) {
-            matchPeligroNivel = huay.includes(nivelRiesgo);
-        } else if (!tipoPeligro && nivelRiesgo) {
-            matchPeligroNivel = inun.includes(nivelRiesgo) || huay.includes(nivelRiesgo);
+        if (nivelRiesgo) {
+            if (tipoPeligro === 'inundacion') {
+                matchPeligroNivel = normInun.includes(normNivel);
+            } else if (tipoPeligro === 'huaycos') {
+                matchPeligroNivel = normHuay.includes(normNivel);
+            } else {
+                // Si no se especifica el tipo, busca en cualquiera de los dos peligros
+                matchPeligroNivel = normInun.includes(normNivel) || normHuay.includes(normNivel);
+            }
         }
 
         if (matchId && matchPeligroNivel) {
@@ -364,6 +374,42 @@ function aplicarFiltrosFEN() {
             tr.style.display = 'none';
         }
     });
+
+    // Actualizar marcadores en el mapa: translúcidos los no filtrados, color de riesgo los filtrados
+    if (layerEstructuras) {
+        layerEstructuras.eachLayer(layer => {
+            let featId = String(layer.feature.properties.ID || layer.feature.properties.id || '').toUpperCase();
+            let elDiv = layer.getElement();
+            if (elDiv) {
+                let labelEl = elDiv.querySelector('.structure-label');
+                if (idsVisibles.has(featId)) {
+                    elDiv.style.opacity = '1';
+                    if (labelEl) {
+                        labelEl.style.backgroundColor = '#d32f2f'; // Destacar etiqueta de alerta
+                        labelEl.style.color = '#ffffff';
+                        labelEl.style.fontWeight = 'bold';
+                    }
+                } else {
+                    elDiv.style.opacity = '0.25'; // Translúcido para el resto
+                    if (labelEl) {
+                        labelEl.style.backgroundColor = '#ffffff';
+                        labelEl.style.color = '#000000';
+                        labelEl.style.fontWeight = 'normal';
+                    }
+                }
+            }
+        });
+    }
+
+    // Auto-encender la capa correspondiente en el mapa
+    if (tipoPeligro === 'inundacion') {
+        let chk = document.getElementById('chkInundacion');
+        if(!chk.checked) { chk.checked = true; chk.dispatchEvent(new Event('change')); }
+    } else if (tipoPeligro === 'huaycos') {
+        let chk = document.getElementById('chkHuaycos');
+        if(!chk.checked) { chk.checked = true; chk.dispatchEvent(new Event('change')); }
+    }
+}
 
     // Actualizar marcadores en el mapa: translúcidos los no filtrados, color de riesgo los filtrados (sin halo rojo)
     if (layerEstructuras) {
