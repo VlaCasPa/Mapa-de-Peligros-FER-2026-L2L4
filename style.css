@@ -127,7 +127,7 @@ tr.filtered-out td {
 .legend-item { display: flex; align-items: center; margin-bottom: 3px; }
 .legend-color { width: 14px; height: 14px; margin-right: 6px; border-radius: 3px; display: inline-block; border: 1px solid rgba(0,0,0,0.2); }
 
-/* Marcador Estructura (Tamaño y separación mejorados) */
+/* Marcador Estructura */
 .structure-marker-container { display: flex; align-items: center; pointer-events: none; }
 .structure-dot { width: 14px; height: 14px; background-color: #0b3d59; border: 2px solid #ffffff; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.4); flex-shrink: 0; }
 .structure-label { background-color: #ffffff; color: #000000; padding: 2px 6px; margin-left: 6px; border-radius: 3px; font-size: 11px; font-weight: bold; border: 1px solid #cccccc; box-shadow: 0 1px 3px rgba(0,0,0,0.2); white-space: nowrap; }
