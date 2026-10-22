@@ -76,7 +76,7 @@ function utm18SToLatLng(easting, northing) {
     return [lat, lng];
 }
 
-// VALORES DE CALIBRACIÓN ÓPTIMA INICIAL
+// VALORES FIJOS DE CALIBRACIÓN ÓPTIMA
 let SHIFT_LAT = 0.0020;
 let SHIFT_LNG = 0.0032;
 
@@ -93,10 +93,6 @@ function updateRasterPosition() {
             opacity: 0.85,
             interactive: false
         });
-    }
-    const lbl = document.getElementById('calibValues');
-    if (lbl) {
-        lbl.innerText = `Lat: ${SHIFT_LAT.toFixed(4)}° | Lng: ${SHIFT_LNG.toFixed(4)}°`;
     }
 }
 
@@ -175,13 +171,44 @@ fetch(baseUrl + 'ESTRUCTURAS%20L2L4.geojson')
         }).addTo(map);
     });
 
-// --- D. CAPA OPCIONAL: LÍMITES DISTRITALES ---
+// --- D. CAPA OPCIONAL: LÍMITES DISTRITALES (Blanco, halo gris, +2px grosor y Tooltip al pasar el mouse) ---
 fetch(baseUrl + 'DISTRITOS%20DE%20LIMA%20Y%20CALLAO.geojson')
     .then(res => res.json())
     .then(data => {
         layerDistritos = L.geoJSON(data, {
-            style: { fillColor: 'transparent', fillOpacity: 0, color: '#888888', weight: 1 }
+            style: { 
+                fillColor: '#ffffff',     // Relleno blanco
+                fillOpacity: 0.15,        // Semitransparente para ver el fondo
+                color: '#666666',         // Halo / Borde gris
+                weight: 3,                // Grosor incrementado (+2px respecto al anterior de 1)
+                opacity: 0.8 
+            },
+            onEachFeature: function (feature, layer) {
+                let nombreDistrito = feature.properties.NOMBDIST || feature.properties.distrito || 'Distrito';
+                // Tooltip que aparece al pasar el cursor por dentro del polígono
+                layer.bindTooltip(`<b>Distrito:</b> ${nombreDistrito}`, {
+                    sticky: true,
+                    direction: 'auto'
+                });
+
+                // Efecto visual al pasar el mouse (hover)
+                layer.on({
+                    mouseover: function (e) {
+                        let l = e.target;
+                        l.setStyle({
+                            weight: 4,
+                            color: '#0b3d59',
+                            fillOpacity: 0.35
+                        });
+                        l.bringToFront();
+                    },
+                    mouseout: function (e) {
+                        layerDistritos.resetStyle(e.target);
+                    }
+                });
+            }
         });
+
         if(document.getElementById('chkDistritos').checked) layerDistritos.addTo(map);
 
         if (!rawOriginBounds) {
@@ -283,7 +310,7 @@ function renderTable(data) {
 }
 
 
-// 5. WIDGET DE AJUSTE FINO RÁSTER (Visible al activar la topografía)
+// 5. WIDGET DE AJUSTE FINO RÁSTER
 const calibBox = document.createElement('div');
 calibBox.id = 'rasterCalibBox';
 calibBox.style.cssText = 'display:none; position:absolute; bottom:25px; left:25px; background:white; padding:8px 12px; border-radius:6px; box-shadow:0 2px 10px rgba(0,0,0,0.2); z-index:1000; font-size:11px; text-align:center;';
@@ -306,7 +333,7 @@ document.getElementById('btnCalibUp').addEventListener('click', () => { SHIFT_LA
 document.getElementById('btnCalibDown').addEventListener('click', () => { SHIFT_LAT -= STEP; updateRasterPosition(); });
 
 
-// 6. CONTROL DE CHECKBOXES (Capas, Topografía exclusiva y Leyenda)
+// 6. CONTROL DE CHECKBOXES
 document.getElementById('chkDistritos').addEventListener('change', function() {
     if(this.checked) map.addLayer(layerDistritos);
     else map.removeLayer(layerDistritos);
@@ -372,7 +399,7 @@ function clearLegend() {
 }
 
 
-// 7. FILTROS RÁPIDOS EN EL PANEL
+// 7. FILTROS RÁPIDOS
 document.getElementById('filterId').addEventListener('input', function() {
     let val = this.value.toUpperCase();
     let filtered = tableDataMaster.filter(r => {
