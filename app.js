@@ -9,14 +9,14 @@ const googleGrisLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=m@129&x={x}&
     className: 'mapa-google-gris'
 }).addTo(map);
 
-// 2. CONFIGURACIÓN DE COLORES NORMADOS CENEPRED
+// 2. CONFIGURACIÓN UNIFICADA DE COLORES NORMADOS CENEPRED
 function getColorPeligro(nivel) {
     if (!nivel) return '#ffffff';
     let n = String(nivel).toUpperCase().trim();
-    if (n.includes('MUY ALTO')) return '#d32f2f'; // Rojo
-    if (n.includes('ALTO')) return '#f57c00';     // Naranja
-    if (n.includes('MEDIO')) return '#fbc02d';    // Amarillo
-    if (n.includes('BAJO')) return '#388e3c';     // Verde
+    if (n.includes('MUY ALTO')) return '#d32f2f'; // Rojo CENEPRED
+    if (n.includes('ALTO')) return '#f57c00';     // Naranja CENEPRED
+    if (n.includes('MEDIO')) return '#fbc02d';    // Amarillo CENEPRED
+    if (n.includes('BAJO')) return '#388e3c';     // Verde CENEPRED
     return '#ffffff';
 }
 
@@ -147,15 +147,15 @@ fetch('datos_raster/elevacion.pgw')
     }).catch(() => {});
 
 
-// --- CARGA DE CAPAS VECTORIALES CON ORDEN JERÁRQUICO PERFECTO (Z-INDEX) ---
+// --- CARGA DE CAPAS VECTORIALES CON ORDEN JERÁRQUICO PERFECTO ---
 
-// 1. CAPA INFERIOR: Peligro Inundación (Se carga lista en memoria)
+// 1. Peligro Inundación
 fetch(baseUrl + 'PELIGRO%20INUNDACION%20LIMA%20Y%20CALLAO.geojson')
     .then(res => res.json())
     .then(data => {
         layerInundacion = L.geoJSON(data, {
             style: function(feature) {
-                return { fillColor: getColorPeligro(feature.properties.niv_sinu), weight: 1, color: '#fff', fillOpacity: 0.55 };
+                return { fillColor: getColorPeligro(feature.properties.niv_sinu), weight: 1, color: '#fff', fillOpacity: 0.6 };
             },
             onEachFeature: function(feature, layer) {
                 layer.bindPopup(`<b>Distrito:</b> ${feature.properties.NOMBDIST}<br><b>Inundación:</b> ${feature.properties.niv_sinu}`);
@@ -163,13 +163,13 @@ fetch(baseUrl + 'PELIGRO%20INUNDACION%20LIMA%20Y%20CALLAO.geojson')
         });
     });
 
-// 2. CAPA INFERIOR: Peligro Movimientos en Masa (Se carga lista en memoria)
+// 2. Peligro Movimientos en Masa
 fetch(baseUrl + 'PELIGRO%20MOVIMIENTOS%20EN%20MASAS%20LIMA%20Y%20CALLAO.geojson')
     .then(res => res.json())
     .then(data => {
         layerHuaycos = L.geoJSON(data, {
             style: function(feature) {
-                return { fillColor: getColorPeligro(feature.properties.npel_mm), weight: 1, color: '#fff', fillOpacity: 0.55 };
+                return { fillColor: getColorPeligro(feature.properties.npel_mm), weight: 1, color: '#fff', fillOpacity: 0.6 };
             },
             onEachFeature: function(feature, layer) {
                 layer.bindPopup(`<b>Distrito:</b> ${feature.properties.NOMBDIST}<br><b>Mov. Masas:</b> ${feature.properties.npel_mm}`);
@@ -177,7 +177,7 @@ fetch(baseUrl + 'PELIGRO%20MOVIMIENTOS%20EN%20MASAS%20LIMA%20Y%20CALLAO.geojson'
         });
     });
 
-// 3. CAPA MEDIA: Delimitación Distrital
+// 3. Delimitación Distrital
 fetch(baseUrl + 'DISTRITOS%20DE%20LIMA%20Y%20CALLAO.geojson')
     .then(res => res.json())
     .then(data => {
@@ -206,14 +206,14 @@ fetch(baseUrl + 'DISTRITOS%20DE%20LIMA%20Y%20CALLAO.geojson')
         }
     });
 
-// 4. CAPA MEDIA-ALTA: Ríos
+// 4. Ríos
 fetch(baseUrl + 'RIOS%20RIMAC%20CHILLON.geojson')
     .then(res => res.json())
     .then(data => {
         layerRios = L.geoJSON(data, { style: { color: '#00bcd4', weight: 3, opacity: 0.8 } }).addTo(map);
     });
 
-// 5. CAPA ALTA: Líneas del Metro (L2 y L4) - Siempre visibles sobre los polígonos de peligro
+// 5. Líneas del Metro (L2 y L4)
 fetch(baseUrl + 'Lineas%20L2L4.geojson')
     .then(res => res.json())
     .then(data => {
@@ -222,7 +222,7 @@ fetch(baseUrl + 'Lineas%20L2L4.geojson')
         }).addTo(map);
     });
 
-// 6. CAPA MÁS ALTA (TOP): Estructuras (Círculos negros + Etiquetas ID) - Siempre al frente
+// 6. Estructuras (Círculos negros + Etiquetas ID al frente)
 fetch(baseUrl + 'ESTRUCTURAS%20L2L4.geojson')
     .then(res => res.json())
     .then(data => {
@@ -236,7 +236,7 @@ fetch(baseUrl + 'ESTRUCTURAS%20L2L4.geojson')
                         iconSize: [60, 20],
                         iconAnchor: [6, 10]
                     }),
-                    zIndexOffset: 1000 // Garantiza que los puntos e IDs estén siempre encima de todo
+                    zIndexOffset: 1000
                 });
             },
             onEachFeature: function (feature, layer) {
@@ -246,7 +246,7 @@ fetch(baseUrl + 'ESTRUCTURAS%20L2L4.geojson')
     });
 
 
-// 4. CARGA DE TABLA CSV OFICIAL Y PINTADO DE CELDAS
+// 4. CARGA DE TABLA CSV OFICIAL Y PINTADO DE CELDAS CON COLORES UNIFICADOS
 const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTE27I4VwWlYKQEgCkNRcGydFG8zFseeR5_0SFF3F_-HEW_VLBPUY_G8uCuexKw2NkkIEq3Wl1i7ipE/pub?gid=1027540316&single=true&output=csv';
 
 Papa.parse(csvUrl, {
@@ -283,8 +283,8 @@ function renderTable(data) {
         let tr = document.createElement('tr');
         tr.innerHTML = `
             <td><b>${structId}</b></td>
-            <td style="background-color: ${colorInun}; color: ${textInun}; font-weight: 500;">${inundacionVal}</td>
-            <td style="background-color: ${colorMasas}; color: ${textMasas}; font-weight: 500;">${masasVal}</td>
+            <td style="background-color: ${colorInun}; color: ${textInun}; font-weight: 600; text-align: center;">${inundacionVal}</td>
+            <td style="background-color: ${colorMasas}; color: ${textMasas}; font-weight: 600; text-align: center;">${masasVal}</td>
         `;
         
         tr.addEventListener('click', () => {
@@ -372,7 +372,7 @@ map.on('click', function(e) {
 });
 
 
-// 6. CONTROL BLINDADO DE CHECKBOXES (Eventos estables sin fallos)
+// 6. CONTROL DE CHECKBOXES Y LEYENDAS UNIFICADAS
 document.getElementById('chkDistritos').addEventListener('change', function() {
     if(this.checked) map.addLayer(layerDistritos);
     else map.removeLayer(layerDistritos);
@@ -404,7 +404,6 @@ document.getElementById('chkTopografia').addEventListener('change', function() {
     }
 });
 
-// Control robusto para Inundación (Exclusivo y estable)
 document.getElementById('chkInundacion').addEventListener('change', function() {
     let huaycoChk = document.getElementById('chkHuaycos');
     if(this.checked) {
@@ -412,7 +411,6 @@ document.getElementById('chkInundacion').addEventListener('change', function() {
         if(map.hasLayer(layerHuaycos)) map.removeLayer(layerHuaycos);
         if(layerInundacion) {
             map.addLayer(layerInundacion);
-            // Asegurar que las líneas y estructuras queden siempre por encima
             if(layerLineas) layerLineas.bringToFront();
             if(layerEstructuras) layerEstructuras.bringToFront();
         }
@@ -423,7 +421,6 @@ document.getElementById('chkInundacion').addEventListener('change', function() {
     }
 });
 
-// Control robusto para Movimientos en Masa (Exclusivo y estable)
 document.getElementById('chkHuaycos').addEventListener('change', function() {
     let inunChk = document.getElementById('chkInundacion');
     if(this.checked) {
@@ -431,7 +428,6 @@ document.getElementById('chkHuaycos').addEventListener('change', function() {
         if(map.hasLayer(layerInundacion)) map.removeLayer(layerInundacion);
         if(layerHuaycos) {
             map.addLayer(layerHuaycos);
-            // Asegurar que las líneas y estructuras queden siempre por encima
             if(layerLineas) layerLineas.bringToFront();
             if(layerEstructuras) layerEstructuras.bringToFront();
         }
