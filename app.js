@@ -213,12 +213,12 @@ fetch(baseUrl + 'RIOS%20RIMAC%20CHILLON.geojson')
         layerRios = L.geoJSON(data, { style: { color: '#00bcd4', weight: 3, opacity: 0.8 } }).addTo(map);
     });
 
-// 5. Líneas del Metro (L2 y L4)
+// 5. Líneas del Metro (L2 y L4) - Grosor incrementado a 7.5
 fetch(baseUrl + 'Lineas%20L2L4.geojson')
     .then(res => res.json())
     .then(data => {
         layerLineas = L.geoJSON(data, { 
-            style: { color: '#0b3d59', weight: 5.5, opacity: 0.9, dashArray: null } 
+            style: { color: '#0b3d59', weight: 7.5, opacity: 0.95, dashArray: null } 
         }).addTo(map);
     });
 
@@ -233,8 +233,8 @@ fetch(baseUrl + 'ESTRUCTURAS%20L2L4.geojson')
                     icon: L.divIcon({
                         className: 'custom-structure-icon',
                         html: `<div class="structure-marker-container"><div class="structure-dot"></div><div class="structure-label id-label-${idText}">${idText}</div></div>`,
-                        iconSize: [60, 20],
-                        iconAnchor: [6, 10]
+                        iconSize: [65, 22],
+                        iconAnchor: [6, 11]
                     }),
                     zIndexOffset: 1000
                 });
@@ -251,7 +251,7 @@ fetch(baseUrl + 'ESTRUCTURAS%20L2L4.geojson')
     });
 
 
-// --- CARGA DE TABLA CSV Y MOTOR DE FILTRADO FEN ---
+// --- CARGA DE TABLA CSV Y MOTOR DE FILTRADO FEN ROBUSTO ---
 const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTE27I4VwWlYKQEgCkNRcGydFG8zFseeR5_0SFF3F_-HEW_VLBPUY_G8uCuexKw2NkkIEq3Wl1i7ipE/pub?gid=1027540316&single=true&output=csv';
 
 Papa.parse(csvUrl, {
@@ -330,7 +330,7 @@ function seleccionarFilaEnTabla(structId) {
 }
 
 
-// --- LÓGICA DE FILTRADO CRUZADO FEN ROBUSTA (MAPA + TABLA) ---
+// --- LÓGICA DE FILTRADO CRUZADO FEN ROBUSTO (MAPA + TABLA) ---
 function aplicarFiltrosFEN() {
     let textId = document.getElementById('filterId').value.toUpperCase().trim();
     let tipoPeligro = document.getElementById('filterTipoPeligro').value;
@@ -355,11 +355,11 @@ function aplicarFiltrosFEN() {
 
         if (nivelRiesgo) {
             if (tipoPeligro === 'inundacion') {
-                matchPeligroNivel = normInun.includes(normNivel);
+                matchPeligroNivel = normInun === normNivel || normInun.includes(normNivel);
             } else if (tipoPeligro === 'huaycos') {
-                matchPeligroNivel = normHuay.includes(normNivel);
+                matchPeligroNivel = normHuay === normNivel || normHuay.includes(normNivel);
             } else {
-                matchPeligroNivel = normInun.includes(normNivel) || normHuay.includes(normNivel);
+                matchPeligroNivel = normInun === normNivel || normInun.includes(normNivel) || normHuay === normNivel || normHuay.includes(normNivel);
             }
         }
 
@@ -371,7 +371,7 @@ function aplicarFiltrosFEN() {
         }
     });
 
-    // Actualizar marcadores en el mapa (Sin halo rojo, color sólido y translúcidos los demás)
+    // Actualizar marcadores en el mapa
     if (layerEstructuras) {
         layerEstructuras.eachLayer(layer => {
             let featId = String(layer.feature.properties.ID || layer.feature.properties.id || '').toUpperCase();
