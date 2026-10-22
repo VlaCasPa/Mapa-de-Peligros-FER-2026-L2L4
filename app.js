@@ -332,7 +332,7 @@ function seleccionarFilaEnTabla(structId) {
 }
 
 
-// --- LÓGICA DE FILTRADO CRUZADO FEN EXHAUSTIVO (MAPA + TABLA + CONTADORES + ATENUACIÓN) ---
+// --- LÓGICA DE FILTRADO CRUZADO FEN EXHAUSTIVO (MAPA + TABLA + CONTADORES + ZOOM AUTOMÁTICO) ---
 function aplicarFiltrosFEN() {
     let textId = document.getElementById('filterId').value.toUpperCase().trim();
     let tipoPeligro = document.getElementById('filterTipoPeligro').value;
@@ -342,6 +342,7 @@ function aplicarFiltrosFEN() {
     let idsVisibles = new Set();
     let totalVisibles = 0;
     let totalGeneral = rows.length;
+    let boundsGroup = []; // Para almacenar las coordenadas y hacer zoom automático
 
     rows.forEach(tr => {
         let sId = tr.dataset.structId || '';
@@ -397,7 +398,7 @@ function aplicarFiltrosFEN() {
     document.getElementById('counterBadge').innerText = `${totalVisibles} / ${totalGeneral}`;
     document.getElementById('tableCounter').innerText = `(${totalVisibles} expuestas)`;
 
-    // Actualizar marcadores en el mapa (Translúcidos los no filtrados)
+    // Actualizar marcadores en el mapa, opacidad y recopilar bounds para zoom automático
     if (layerEstructuras) {
         layerEstructuras.eachLayer(layer => {
             let featId = String(layer.feature.properties.ID || layer.feature.properties.id || '').toUpperCase();
@@ -411,6 +412,7 @@ function aplicarFiltrosFEN() {
                         labelEl.style.color = '#ffffff';
                         labelEl.style.fontWeight = 'bold';
                     }
+                    boundsGroup.push(layer.getLatLng());
                 } else {
                     elDiv.style.opacity = '0.25';
                     if (labelEl) {
@@ -421,6 +423,12 @@ function aplicarFiltrosFEN() {
                 }
             }
         });
+
+        // Hacer zoom automático a los elementos filtrados si existen coincidencias
+        if (boundsGroup.length > 0 && (nivelRiesgo !== "" || textId !== "" || tipoPeligro !== "")) {
+            let groupBounds = L.latLngBounds(boundsGroup);
+            map.fitBounds(groupBounds, { padding: [50, 50], maxZoom: 15, animate: true });
+        }
     }
 
     if (tipoPeligro === 'inundacion') {
