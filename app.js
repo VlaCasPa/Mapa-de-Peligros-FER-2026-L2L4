@@ -213,7 +213,7 @@ fetch(baseUrl + 'RIOS%20RIMAC%20CHILLON.geojson')
         layerRios = L.geoJSON(data, { style: { color: '#00bcd4', weight: 3, opacity: 0.8 } }).addTo(map);
     });
 
-// 5. Líneas del Metro (L2 y L4) - Grosor de trazo en 7.5
+// 5. Líneas del Metro (L2 y L4) - Grosor en 7.5
 fetch(baseUrl + 'Lineas%20L2L4.geojson')
     .then(res => res.json())
     .then(data => {
@@ -332,23 +332,94 @@ function seleccionarFilaEnTabla(structId) {
 }
 
 
-// --- LÓGICA DE FILTRADO FEN EXHAUSTIVO, CONTADORES Y ATENUACIÓN DE COLUMNAS ---
+// --- LÓGICA DE LA VENTANA FLOTANTE MOVIBLE (DRAG & DROP) ---
+const floatingPanel = document.getElementById('floatingSummary');
+const floatingHeader = document.getElementById('floatingHeader');
+let isDragging = false;
+let offsetX, offsetY;
+
+floatingHeader.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    offsetX = e.clientX - floatingPanel.offsetLeft;
+    offsetY = e.clientY - floatingPanel.offsetTop;
+    floatingHeader.style.cursor = 'grabbing';
+});
+
+document.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    floatingPanel.style.left = (e.clientX - offsetX) + 'px';
+    floatingPanel.style.top = (e.clientY - offsetY) + 'px';
+    floatingPanel.style.position = 'absolute';
+});
+
+document.addEventListener('mouseup', () => {
+    isDragging = false;
+    floatingHeader.style.cursor = 'grab';
+});
+
+document.getElementById('btnCloseFloating').addEventListener('click', () => {
+    floatingPanel.style.display = 'none';
+});
+
+function actualizarVentanaFlotante(elementosFiltrados, tipoPeligroActivo) {
+    const floatingBody = document.getElementById('floatingBody');
+    floatingBody.innerHTML = '';
+
+    if (elementosFiltrados.length === 0) {
+        floatingBody.innerHTML = `<p style="font-size: 11px; color: #666; text-align: center; padding: 10px;">Sin estructuras coincidentes</p>`;
+        return;
+    }
+
+    elementosFiltrados.forEach(item => {
+        let nivelTexto = tipoPeligroActivo === 'huaycos' ? item.huaycos : item.inundacion;
+        let colorNivel = getColorPeligro(nivelTexto);
+        let textoColorNivel = getTextColor(nivelTexto);
+        let tipoLabel = tipoPeligroActivo === 'huaycos' ? 'Mov. Masas' : (tipoPeligro === 'inundacion' ? 'Inundación' : 'Riesgo FEN');
+
+        let div = document.createElement('div');
+        div.className = 'floating-item';
+        div.style.borderLeftColor = colorNivel;
+        div.innerHTML = `
+            <div>
+                <span class="floating-item-id">${item.id}</span>
+                <div style="font-size: 9.5px; color: #555;">${tipoPeligroActivo ? tipoLabel : 'General'}</div>
+            </div>
+            <span class="floating-item-badge" style="background-color: ${colorNivel}; color: ${textoColorNivel};">${nivelTexto || 'N/D'}</span>
+        `;
+        
+        div.addEventListener('click', () => {
+            if(layerEstructuras) {
+                layerEstructuras.eachLayer(layer => {
+                    let featId = String(layer.feature.properties.ID || '').toUpperCase();
+                    if(featId === item.id) {
+                        map.setView(layer.getLatLng(), 16);
+                        layer.openPopup();
+                    }
+                });
+            }
+        });
+        
+        floatingBody.appendChild(div);
+    });
+}
+
+
+// --- LÓGICA DE FILTRADO FEN EXHAUSTIVO, CONTADORES, ZOOM Y ATENUACIÓN ---
 function aplicarFiltrosFEN() {
     let textId = document.getElementById('filterId').value.toUpperCase().trim();
-    let tipoPeligro = document.getElementById('filterTipoPeligro').value; // 'inundacion', 'huaycos' o ''
-    let nivelRiesgo = document.getElementById('filterNivelRiesgo').value.toUpperCase().trim(); // 'MUY ALTO', 'ALTO', etc.
+    let tipoPeligro = document.getElementById('filterTipoPeligro').value;
+    let nivelRiesgo = document.getElementById('filterNivelRiesgo').value.toUpperCase().trim();
 
     let rows = document.querySelectorAll('#tableBody tr');
     let idsVisibles = new Set();
     let totalVisibles = 0;
     let totalGeneral = rows.length;
     let boundsGroup = [];
+    let listaParaFlotante = [];
 
-    // Referencias a los encabezados de la tabla para atenuar visualmente la columna inactiva
     let thInun = document.getElementById('thInun');
     let thHuay = document.getElementById('thHuay');
 
-    // Manejar atenuación de columnas enteras según el tipo de peligro seleccionado
     if (tipoPeligro === 'inundacion') {
         if(thInun) thInun.classList.remove('col-dimmed');
         if(thHuay) thHuay.classList.add('col-dimmed');
@@ -392,7 +463,8 @@ function aplicarFiltrosFEN() {
             idsVisibles.add(sId);
             totalVisibles++;
 
-            // Atenuar en la celda de la tabla la columna que NO se está filtrando
+            listaParaFlotante.push({ id: sId, inundacion: inun, huaycos: huay });
+
             if (tipoPeligro === 'inundacion') {
                 if(cellInun) cellInun.classList.remove('col-dimmed');
                 if(cellHuay) cellHuay.classList.add('col-dimmed');
@@ -410,13 +482,16 @@ function aplicarFiltrosFEN() {
         }
     });
 
-    // Actualizar contadores gerenciales en pantalla de manera garantizada
+    // Actualizar contadores
     let badge = document.getElementById('counterBadge');
     let tCounter = document.getElementById('tableCounter');
     if(badge) badge.innerText = `${totalVisibles} / ${totalGeneral}`;
     if(tCounter) tCounter.innerText = `(${totalVisibles} expuestas)`;
 
-    // Actualizar opacidad de marcadores en el mapa y recopilar bounds para zoom automático
+    // Actualizar ventana flotante gerencial
+    actualizarVentanaFlotante(listaParaFlotante, tipoPeligro);
+
+    // Actualizar mapa, opacidad y zoom automático
     if (layerEstructuras) {
         layerEstructuras.eachLayer(layer => {
             let featId = String(layer.feature.properties.ID || layer.feature.properties.id || '').toUpperCase();
@@ -442,14 +517,12 @@ function aplicarFiltrosFEN() {
             }
         });
 
-        // Zoom automático inteligente al conjunto de elementos filtrados
         if (boundsGroup.length > 0 && (nivelRiesgo !== "" || textId !== "" || tipoPeligro !== "")) {
             let groupBounds = L.latLngBounds(boundsGroup);
             map.fitBounds(groupBounds, { padding: [50, 50], maxZoom: 15, animate: true });
         }
     }
 
-    // Auto-encender la capa temática correspondiente en el mapa
     if (tipoPeligro === 'inundacion') {
         let chk = document.getElementById('chkInundacion');
         if(chk && !chk.checked) { chk.checked = true; chk.dispatchEvent(new Event('change')); }
