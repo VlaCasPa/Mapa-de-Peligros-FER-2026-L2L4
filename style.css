@@ -58,14 +58,44 @@ body, html { height: 100%; width: 100%; overflow: hidden; background-color: #f3f
 
 .toggle-group label { display: block; font-size: 0.82rem; margin-bottom: 6px; cursor: pointer; }
 
-/* Tabla Estilizada con celdas de colores */
-.table-section { flex: 1; display: flex; flex-direction: column; min-height: 180px; }
-.table-container { flex: 1; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; background: white; max-height: 220px; }
+/* --- TABLA ESTILIZADA EXTENDIDA HASTA EL README --- */
+.table-section { 
+    flex: 2; 
+    display: flex; 
+    flex-direction: column; 
+    min-height: 280px; 
+}
+
+.table-container { 
+    flex: 1; 
+    overflow-y: auto; 
+    border: 1px solid #ddd; 
+    border-radius: 4px; 
+    background: white; 
+    max-height: none; 
+}
+
 table { width: 100%; border-collapse: collapse; font-size: 0.75rem; text-align: left; }
 th { background-color: var(--primary-blue); color: white; padding: 6px; position: sticky; top: 0; z-index: 2; }
 td { padding: 5px 6px; border-bottom: 1px solid #eee; cursor: pointer; }
 tr:hover { background-color: #f1f1f1; }
 tr.selected-row { background-color: #b3e5fc !important; font-weight: bold; }
+
+/* Botón Exportar Excel */
+.btn-export {
+    background-color: #2e7d32;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.btn-export:hover {
+    background-color: #1b5e20;
+}
 
 .panel-footer { padding: 10px 15px; text-align: center; margin-top: auto; border-top: 1px solid #ddd; background: #f1f1f1; }
 .btn-readme { display: block; width: 100%; background-color: #ddd; color: var(--primary-blue); border: none; cursor: pointer; padding: 8px; border-radius: 4px; font-weight: bold; font-size: 0.78rem; transition: background 0.2s; }
@@ -102,18 +132,3 @@ tr.selected-row { background-color: #b3e5fc !important; font-weight: bold; }
 .markdown-body h2 { font-size: 1.2rem; color: var(--primary-blue); margin-top: 20px; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
 .markdown-body p, .markdown-body li { font-size: 0.9rem; line-height: 1.6; color: #444; margin-bottom: 10px; }
 .markdown-body ul { padding-left: 20px; }
-/* Botón Exportar Excel */
-.btn-export {
-    background-color: #2e7d32;
-    color: white;
-    border: none;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.72rem;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-.btn-export:hover {
-    background-color: #1b5e20;
-}
