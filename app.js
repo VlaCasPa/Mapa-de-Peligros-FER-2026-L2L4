@@ -222,7 +222,7 @@ fetch(baseUrl + 'Lineas%20L2L4.geojson')
         }).addTo(map);
     });
 
-// 6. Estructuras
+// 6. Estructuras (Con sincronización al hacer clic en el mapa hacia la tabla)
 fetch(baseUrl + 'ESTRUCTURAS%20L2L4.geojson')
     .then(res => res.json())
     .then(data => {
@@ -232,7 +232,7 @@ fetch(baseUrl + 'ESTRUCTURAS%20L2L4.geojson')
                 return L.marker(latlng, {
                     icon: L.divIcon({
                         className: 'custom-structure-icon',
-                        html: `<div class="structure-marker-container"><div class="structure-dot"></div><div class="structure-label">${idText}</div></div>`,
+                        html: `<div class="structure-marker-container"><div class="structure-dot"></div><div class="structure-label id-label-${idText}">${idText}</div></div>`,
                         iconSize: [60, 20],
                         iconAnchor: [6, 10]
                     }),
@@ -240,13 +240,19 @@ fetch(baseUrl + 'ESTRUCTURAS%20L2L4.geojson')
                 });
             },
             onEachFeature: function (feature, layer) {
-                layer.bindPopup(`<b>Estructura ID:</b> ${feature.properties.ID || 'N/A'}`);
+                let structId = String(feature.properties.ID || '').toUpperCase();
+                layer.bindPopup(`<b>Estructura ID:</b> ${structId}`);
+                
+                // Clic en el marcador del mapa selecciona la fila en la tabla
+                layer.on('click', () => {
+                    seleccionarFilaEnTabla(structId);
+                });
             }
         }).addTo(map);
     });
 
 
-// 4. CARGA DE TABLA CSV Y MOTOR DE FILTRADO FEN
+// --- CARGA DE TABLA CSV Y MOTOR DE FILTRADO FEN ---
 const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTE27I4VwWlYKQEgCkNRcGydFG8zFseeR5_0SFF3F_-HEW_VLBPUY_G8uCuexKw2NkkIEq3Wl1i7ipE/pub?gid=1027540316&single=true&output=csv';
 
 Papa.parse(csvUrl, {
@@ -309,14 +315,29 @@ function renderTable(data) {
     });
 }
 
+// Función para seleccionar la fila en la tabla desde el mapa
+function seleccionarFilaEnTabla(structId) {
+    const rows = document.querySelectorAll('#tableBody tr');
+    let encontrada = null;
+    rows.forEach(tr => {
+        tr.classList.remove('selected-row');
+        if (tr.dataset.structId === structId) {
+            encontrada = tr;
+        }
+    });
+    if (encontrada) {
+        encontrada.classList.add('selected-row');
+        encontrada.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
 
-// --- 5. LÓGICA DE FILTRADO CRUZADO FEN (MAPA + TABLA) ---
+
+// --- LÓGICA DE FILTRADO CRUZADO FEN (MAPA + TABLA) ---
 function aplicarFiltrosFEN() {
     let textId = document.getElementById('filterId').value.toUpperCase().trim();
-    let tipoPeligro = document.getElementById('filterTipoPeligro').value; // 'inundacion', 'huaycos' o ''
-    let nivelRiesgo = document.getElementById('filterNivelRiesgo').value.toUpperCase(); // 'MUY ALTO', 'ALTO', etc.
+    let tipoPeligro = document.getElementById('filterTipoPeligro').value;
+    let nivelRiesgo = document.getElementById('filterNivelRiesgo').value.toUpperCase();
 
-    // 1. Filtrar la Tabla
     let rows = document.querySelectorAll('#tableBody tr');
     let idsVisibles = new Set();
 
@@ -344,24 +365,32 @@ function aplicarFiltrosFEN() {
         }
     });
 
-    // 2. Filtrar Estructuras en el Mapa (Resaltar o enfocar las que cumplen el filtro)
+    // Actualizar marcadores en el mapa: translúcidos los no filtrados, color de riesgo los filtrados (sin halo rojo)
     if (layerEstructuras) {
         layerEstructuras.eachLayer(layer => {
             let featId = String(layer.feature.properties.ID || layer.feature.properties.id || '').toUpperCase();
             let elDiv = layer.getElement();
             if (elDiv) {
+                let labelEl = elDiv.querySelector('.structure-label');
                 if (idsVisibles.has(featId)) {
                     elDiv.style.opacity = '1';
-                    elDiv.style.filter = 'drop-shadow(0 0 4px #d32f2f)';
+                    if (labelEl) {
+                        labelEl.style.backgroundColor = '#d32f2f'; // Pintar etiqueta del color seleccionado de alerta
+                        labelEl.style.color = '#ffffff';
+                        labelEl.style.fontWeight = 'bold';
+                    }
                 } else {
-                    elDiv.style.opacity = '0.3';
-                    elDiv.style.filter = 'none';
+                    elDiv.style.opacity = '0.25'; // Translúcido para los demás
+                    if (labelEl) {
+                        labelEl.style.backgroundColor = '#ffffff';
+                        labelEl.style.color = '#000000';
+                        labelEl.style.fontWeight = 'normal';
+                    }
                 }
             }
         });
     }
 
-    // 3. Activar automáticamente la capa de peligro correspondiente en el mapa si se selecciona un tipo
     if (tipoPeligro === 'inundacion') {
         document.getElementById('chkInundacion').checked = true;
         document.getElementById('chkInundacion').dispatchEvent(new Event('change'));
@@ -371,13 +400,40 @@ function aplicarFiltrosFEN() {
     }
 }
 
-// Escuchadores de eventos para los filtros
 document.getElementById('filterId').addEventListener('input', aplicarFiltrosFEN);
 document.getElementById('filterTipoPeligro').addEventListener('change', aplicarFiltrosFEN);
 document.getElementById('filterNivelRiesgo').addEventListener('change', aplicarFiltrosFEN);
 
 
-// 6. WIDGET DE CALIBRACIÓN RÁSTER
+// --- EXPORTAR TABLA A EXCEL (CSV) ---
+document.getElementById('btnExportExcel').addEventListener('click', function() {
+    let csvContent = "data:text/csv;charset=utf-8,ID,Inundación,Movimientos en Masa\n";
+    tableDataMaster.forEach(row => {
+        let keys = Object.keys(row);
+        let idKey = keys.find(k => k.toUpperCase().includes('ID'));
+        let inunKey = keys.find(k => k.toUpperCase().includes('INUNDACI'));
+        let masasKey = keys.find(k => k.toUpperCase().includes('MOVIMIENTO') || k.toUpperCase().includes('MASAS'));
+
+        let sId = idKey ? row[idKey] : '';
+        let inun = inunKey ? row[inunKey] : '';
+        let masas = masasKey ? row[masasKey] : '';
+
+        if(sId) {
+            csvContent += `"${sId}","${inun}","${masas}"\n`;
+        }
+    });
+
+    let encodedUri = encodeURI(csvContent);
+    let link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "Matriz_Riesgos_FEN_L2L4.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+});
+
+
+// 5. WIDGET DE CALIBRACIÓN RÁSTER
 const calibBox = document.createElement('div');
 calibBox.id = 'rasterCalibBox';
 calibBox.style.cssText = 'display:none; position:absolute; bottom:25px; left:25px; background:white; padding:8px 12px; border-radius:6px; box-shadow:0 2px 10px rgba(0,0,0,0.2); z-index:1000; font-size:11px; text-align:center; width: 175px;';
@@ -443,7 +499,7 @@ map.on('click', function(e) {
 });
 
 
-// 7. CONTROL DE CHECKBOXES
+// 6. CONTROL DE CHECKBOXES
 document.getElementById('chkDistritos').addEventListener('change', function() {
     if(this.checked) map.addLayer(layerDistritos);
     else map.removeLayer(layerDistritos);
@@ -523,6 +579,10 @@ function updateLegend(tipo) {
 function clearLegend() {
     document.getElementById('legendContent').innerHTML = 'Seleccione una capa de riesgo';
 }
+
+
+// 7. FILTROS RÁPIDOS
+document.getElementById('filterId').addEventListener('input', aplicarFiltrosFEN);
 
 
 // 8. CONTROL DE LA VENTANA MODAL (README)
