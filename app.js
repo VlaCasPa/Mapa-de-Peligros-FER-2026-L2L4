@@ -27,7 +27,7 @@ function getTextColor(nivel) {
     return '#000000';
 }
 
-// 3. VARIABLES GLOBALES DE CAPAS Y CALIBRACIÓN TOPOGRÁFICA
+// 3. VARIABLES GLOBALES DE CAPAS Y ANCLAJE GEORREF
 let layerRios, layerLineas, layerDistritos, layerEstructuras, layerInundacion, layerHuaycos;
 let rasterElevationLayer = null;
 let rawOriginBounds = null;
@@ -76,9 +76,12 @@ function utm18SToLatLng(easting, northing) {
     return [lat, lng];
 }
 
-// VALORES FIJOS DE CALIBRACIÓN ÓPTIMA
+// PARÁMETROS DE CALIBRACIÓN FINALES Y ANCLAJE (PIN)
 let SHIFT_LAT = 0.0020;
 let SHIFT_LNG = 0.0032;
+let RASTER_ROTATION = 0.0;
+let anchorMarker = null; // Variable para la tachuela / alfiler de anclaje
+let isAnchorModeActive = false;
 
 function updateRasterPosition() {
     if (!rawOriginBounds) return;
@@ -86,13 +89,34 @@ function updateRasterPosition() {
         [rawOriginBounds[0][0] + SHIFT_LAT, rawOriginBounds[0][1] + SHIFT_LNG],
         [rawOriginBounds[1][0] + SHIFT_LAT, rawOriginBounds[1][1] + SHIFT_LNG]
     ];
+    
     if (rasterElevationLayer) {
         rasterElevationLayer.setBounds(calibratedBounds);
+        if (rasterElevationLayer._image) {
+            // Si hay un marcador de anclaje puesto, rotamos desde ese punto exacto del mapa
+            if (anchorMarker) {
+                let mapPoint = map.latLngToContainerPoint(anchorMarker.getLatLng());
+                let imagePoint = map.latLngToContainerPoint(rasterElevationLayer.getBounds().getCenter());
+                // Ajuste dinámico del pivote CSS de rotación respecto al anclaje
+                let pivotX = mapPoint.x - imagePoint.x + (rasterElevationLayer._image.clientWidth / 2);
+                let pivotY = mapPoint.y - imagePoint.y + (rasterElevationLayer._image.clientHeight / 2);
+                rasterElevationLayer._image.style.transformOrigin = `${pivotX}px ${pivotY}px`;
+            } else {
+                rasterElevationLayer._image.style.transformOrigin = 'center center';
+            }
+            rasterElevationLayer._image.style.transition = 'transform 0.1s ease';
+            rasterElevationLayer._image.style.transform = `rotate(${RASTER_ROTATION}deg)`;
+        }
     } else {
         rasterElevationLayer = L.imageOverlay('datos_raster/elevacion.png', calibratedBounds, {
             opacity: 0.85,
             interactive: false
         });
+    }
+    
+    const lbl = document.getElementById('calibValues');
+    if (lbl) {
+        lbl.innerText = `Lat: ${SHIFT_LAT.toFixed(4)}° | Lng: ${SHIFT_LNG.toFixed(4)}°\nGiro: ${RASTER_ROTATION.toFixed(2)}°`;
     }
 }
 
@@ -140,7 +164,7 @@ fetch(baseUrl + 'RIOS%20RIMAC%20CHILLON.geojson')
         layerRios = L.geoJSON(data, { style: { color: '#00bcd4', weight: 3, opacity: 0.8 } }).addTo(map);
     });
 
-// --- B. CAPA FIJA: LÍNEAS 2 Y 4 (Continuas y gruesas) ---
+// --- B. CAPA FIJA: LÍNEAS 2 Y 4 ---
 fetch(baseUrl + 'Lineas%20L2L4.geojson')
     .then(res => res.json())
     .then(data => {
@@ -171,36 +195,25 @@ fetch(baseUrl + 'ESTRUCTURAS%20L2L4.geojson')
         }).addTo(map);
     });
 
-// --- D. CAPA OPCIONAL: LÍMITES DISTRITALES (Blanco, halo gris, +2px grosor y Tooltip al pasar el mouse) ---
+// --- D. CAPA OPCIONAL: LÍMITES DISTRITALES ---
 fetch(baseUrl + 'DISTRITOS%20DE%20LIMA%20Y%20CALLAO.geojson')
     .then(res => res.json())
     .then(data => {
         layerDistritos = L.geoJSON(data, {
             style: { 
-                fillColor: '#ffffff',     // Relleno blanco
-                fillOpacity: 0.15,        // Semitransparente para ver el fondo
-                color: '#666666',         // Halo / Borde gris
-                weight: 3,                // Grosor incrementado (+2px respecto al anterior de 1)
+                fillColor: '#ffffff',
+                fillOpacity: 0.15,
+                color: '#666666',
+                weight: 3,
                 opacity: 0.8 
             },
             onEachFeature: function (feature, layer) {
                 let nombreDistrito = feature.properties.NOMBDIST || feature.properties.distrito || 'Distrito';
-                // Tooltip que aparece al pasar el cursor por dentro del polígono
-                layer.bindTooltip(`<b>Distrito:</b> ${nombreDistrito}`, {
-                    sticky: true,
-                    direction: 'auto'
-                });
-
-                // Efecto visual al pasar el mouse (hover)
+                layer.bindTooltip(`<b>Distrito:</b> ${nombreDistrito}`, { sticky: true, direction: 'auto' });
                 layer.on({
                     mouseover: function (e) {
-                        let l = e.target;
-                        l.setStyle({
-                            weight: 4,
-                            color: '#0b3d59',
-                            fillOpacity: 0.35
-                        });
-                        l.bringToFront();
+                        e.target.setStyle({ weight: 4, color: '#0b3d59', fillOpacity: 0.35 });
+                        e.target.bringToFront();
                     },
                     mouseout: function (e) {
                         layerDistritos.resetStyle(e.target);
@@ -310,27 +323,77 @@ function renderTable(data) {
 }
 
 
-// 5. WIDGET DE AJUSTE FINO RÁSTER
+// 5. WIDGET DE CALIBRACIÓN AVANZADA (Desplazamiento, Giro y Anclaje con Pin/Tachuela)
 const calibBox = document.createElement('div');
 calibBox.id = 'rasterCalibBox';
-calibBox.style.cssText = 'display:none; position:absolute; bottom:25px; left:25px; background:white; padding:8px 12px; border-radius:6px; box-shadow:0 2px 10px rgba(0,0,0,0.2); z-index:1000; font-size:11px; text-align:center;';
+calibBox.style.cssText = 'display:none; position:absolute; bottom:25px; left:25px; background:white; padding:8px 12px; border-radius:6px; box-shadow:0 2px 10px rgba(0,0,0,0.2); z-index:1000; font-size:11px; text-align:center; width: 175px;';
 calibBox.innerHTML = `
-    <div style="font-weight:bold; color:#0b3d59; margin-bottom:4px;">🎯 Ajuste Fino Ráster</div>
-    <div style="display:flex; justify-content:center; gap:4px; margin-bottom:4px;">
-        <button id="btnCalibLeft" style="padding:2px 6px; cursor:pointer;" title="Mover Izquierda">◀</button>
-        <button id="btnCalibUp" style="padding:2px 6px; cursor:pointer;" title="Mover Arriba">▲</button>
-        <button id="btnCalibDown" style="padding:2px 6px; cursor:pointer;" title="Mover Abajo">▼</button>
-        <button id="btnCalibRight" style="padding:2px 6px; cursor:pointer;" title="Mover Derecha">▶</button>
+    <div style="font-weight:bold; color:#0b3d59; margin-bottom:4px;">🎯 Calibración con Pin</div>
+    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:3px; margin-bottom:4px;">
+        <button id="btnRotCCW" style="padding:3px; cursor:pointer;" title="Giro Antihorario">↺</button>
+        <button id="btnCalibUp" style="padding:3px; cursor:pointer;" title="Mover Arriba">▲</button>
+        <button id="btnRotCW" style="padding:3px; cursor:pointer;" title="Giro Horario">↻</button>
+        <button id="btnCalibLeft" style="padding:3px; cursor:pointer;" title="Mover Izquierda">◀</button>
+        <button id="btnCalibDown" style="padding:3px; cursor:pointer;" title="Mover Abajo">▼</button>
+        <button id="btnCalibRight" style="padding:3px; cursor:pointer;" title="Mover Derecha">▶</button>
     </div>
-    <div id="calibValues" style="font-size:10px; color:#555;">Lat: ${SHIFT_LAT.toFixed(4)}° | Lng: ${SHIFT_LNG.toFixed(4)}°</div>
+    <button id="btnToggleAnchor" style="width:100%; padding:3px; background:#f0f4f8; border:1px solid #0b3d59; color:#0b3d59; font-weight:bold; cursor:pointer; border-radius:3px; margin-bottom:4px;">📍 Colocar Pin Anclaje</button>
+    <div id="calibValues" style="font-size:9.5px; color:#555; white-space: pre-line;">Lat: 0° | Lng: 0°\nGiro: 0°</div>
 `;
 document.querySelector('.map-container').appendChild(calibBox);
 
-const STEP = 0.0002;
-document.getElementById('btnCalibLeft').addEventListener('click', () => { SHIFT_LNG -= STEP; updateRasterPosition(); });
-document.getElementById('btnCalibRight').addEventListener('click', () => { SHIFT_LNG += STEP; updateRasterPosition(); });
-document.getElementById('btnCalibUp').addEventListener('click', () => { SHIFT_LAT += STEP; updateRasterPosition(); });
-document.getElementById('btnCalibDown').addEventListener('click', () => { SHIFT_LAT -= STEP; updateRasterPosition(); });
+const STEP_POS = 0.0002;
+const STEP_ROT = 0.25;
+
+document.getElementById('btnCalibLeft').addEventListener('click', () => { SHIFT_LNG -= STEP_POS; updateRasterPosition(); });
+document.getElementById('btnCalibRight').addEventListener('click', () => { SHIFT_LNG += STEP_POS; updateRasterPosition(); });
+document.getElementById('btnCalibUp').addEventListener('click', () => { SHIFT_LAT += STEP_POS; updateRasterPosition(); });
+document.getElementById('btnCalibDown').addEventListener('click', () => { SHIFT_LAT -= STEP_POS; updateRasterPosition(); });
+document.getElementById('btnRotCCW').addEventListener('click', () => { RASTER_ROTATION -= STEP_ROT; updateRasterPosition(); });
+document.getElementById('btnRotCW').addEventListener('click', () => { RASTER_ROTATION += STEP_ROT; updateRasterPosition(); });
+
+// Evento para activar la colocación del Pin/Tachuela en el mapa
+document.getElementById('btnToggleAnchor').addEventListener('click', () => {
+    isAnchorModeActive = !isAnchorModeActive;
+    const btn = document.getElementById('btnToggleAnchor');
+    if (isAnchorModeActive) {
+        btn.style.background = '#0b3d59';
+        btn.style.color = 'white';
+        btn.innerText = 'Click en mapa para Pin...';
+    } else {
+        btn.style.background = '#f0f4f8';
+        btn.style.color = '#0b3d59';
+        btn.innerText = '📍 Colocar Pin Anclaje';
+    }
+});
+
+// Clic en el mapa para fijar la tachuela de anclaje
+map.on('click', function(e) {
+    if (!isAnchorModeActive) return;
+    
+    if (anchorMarker) {
+        map.removeLayer(anchorMarker);
+    }
+    
+    // Crear ícono de tachuela / alfiler personalizado
+    const pinIcon = L.divIcon({
+        className: 'custom-pin-icon',
+        html: `<div style="background:#d32f2f; color:white; width:22px; height:22px; border-radius:50%; border:2px solid white; display:flex; align-items:center; justify-content:center; font-size:12px; box-shadow:0 2px 5px rgba(0,0,0,0.3);">📍</div>`,
+        iconSize: [22, 22],
+        iconAnchor: [11, 11]
+    });
+
+    anchorMarker = L.marker(e.latlng, { icon: pinIcon }).addTo(map);
+    anchorMarker.bindPopup(`<b>Punto de Anclaje de Giro</b><br>Lat: ${e.latlng.lat.toFixed(4)}, Lng: ${e.latlng.lng.toFixed(4)}`).openPopup();
+
+    isAnchorModeActive = false;
+    const btn = document.getElementById('btnToggleAnchor');
+    btn.style.background = '#f0f4f8';
+    btn.style.color = '#0b3d59';
+    btn.innerText = '📍 Pin Fijado (Cambiar)';
+    
+    updateRasterPosition();
+});
 
 
 // 6. CONTROL DE CHECKBOXES
@@ -345,11 +408,19 @@ document.getElementById('chkTopografia').addEventListener('change', function() {
         if (rasterElevationLayer) {
             rasterElevationLayer.addTo(map);
             rasterElevationLayer.bringToBack();
+            if (rasterElevationLayer._image) {
+                rasterElevationLayer._image.style.transform = `rotate(${RASTER_ROTATION}deg)`;
+            }
         }
         calibBox.style.display = 'block';
+        updateRasterPosition();
     } else {
         if (rasterElevationLayer && map.hasLayer(rasterElevationLayer)) {
             map.removeLayer(rasterElevationLayer);
+        }
+        if (anchorMarker) {
+            map.removeLayer(anchorMarker);
+            anchorMarker = null;
         }
         googleGrisLayer.addTo(map);
         googleGrisLayer.bringToBack();
@@ -358,7 +429,7 @@ document.getElementById('chkTopografia').addEventListener('change', function() {
 });
 
 document.getElementById('chkInundacion').addEventListener('change', function() {
-    let huaycoChk = document.getElementById('chkHuaycos');
+    let huaycoChk = document.getElementById('chkInundacion');
     if(this.checked) {
         huaycoChk.checked = false;
         if(map.hasLayer(layerHuaycos)) map.removeLayer(layerHuaycos);
@@ -420,6 +491,7 @@ const btnCloseBottom = document.getElementById('btnCloseModalBottom');
 
 btnOpen.addEventListener('click', () => { modal.style.display = 'flex'; });
 btnClose.addEventListener('click', () => { modal.style.display = 'none'; });
+btnOpen.addEventListener('click', () => { modal.style.display = 'flex'; });
 btnCloseBottom.addEventListener('click', () => { modal.style.display = 'none'; });
 
 modal.addEventListener('click', (e) => {
