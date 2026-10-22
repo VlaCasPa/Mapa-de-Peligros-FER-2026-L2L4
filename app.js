@@ -404,7 +404,7 @@ function actualizarVentanaFlotante(elementosFiltrados, tipoPeligroActivo) {
 }
 
 
-// --- LÓGICA DE FILTRADO FEN EXHAUSTIVO, CONTADORES, ZOOM Y VACIADO AUTOMÁTICO ---
+// --- LÓGICA DE FILTRADO FEN EXHAUSTIVO (AUTO-ENCENDIDO DE CAPAS, CORRECCIÓN DE COLUMNAS E INUNDACIÓN) ---
 function aplicarFiltrosFEN() {
     let textId = document.getElementById('filterId').value.toUpperCase().trim();
     let tipoPeligro = document.getElementById('filterTipoPeligro').value; // 'inundacion', 'huaycos' o ''
@@ -420,6 +420,7 @@ function aplicarFiltrosFEN() {
     let thInun = document.getElementById('thInun');
     let thHuay = document.getElementById('thHuay');
 
+    // Manejo de atenuación de columnas en la tabla
     if (tipoPeligro === 'inundacion') {
         if(thInun) thInun.classList.remove('col-dimmed');
         if(thHuay) thHuay.classList.add('col-dimmed');
@@ -447,11 +448,11 @@ function aplicarFiltrosFEN() {
 
         if (normNivel !== "") {
             if (tipoPeligro === 'inundacion') {
-                matchPeligroNivel = (normInun === normNivel);
+                matchPeligroNivel = (normInun === normNivel || normInun.includes(normNivel));
             } else if (tipoPeligro === 'huaycos') {
-                matchPeligroNivel = (normHuay === normNivel);
+                matchPeligroNivel = (normHuay === normNivel || normHuay.includes(normNivel));
             } else {
-                matchPeligroNivel = (normInun === normNivel || normHuay === normNivel);
+                matchPeligroNivel = (normInun === normNivel || normInun.includes(normNivel) || normHuay === normNivel || normHuay.includes(normNivel));
             }
         }
 
@@ -482,16 +483,16 @@ function aplicarFiltrosFEN() {
         }
     });
 
-    // Actualizar contadores gerenciales
+    // Actualizar contadores
     let badge = document.getElementById('counterBadge');
     let tCounter = document.getElementById('tableCounter');
     if(badge) badge.innerText = `${totalVisibles} / ${totalGeneral}`;
     if(tCounter) tCounter.innerText = `(${totalVisibles} expuestas)`;
 
-    // Actualizar ventana flotante gerencial (Se vacía limpiamente si no hay data)
+    // Actualizar ventana flotante
     actualizarVentanaFlotante(listaParaFlotante, tipoPeligro);
 
-    // Actualizar opacidad de marcadores y zoom inteligente
+    // Actualizar mapa y zoom
     if (layerEstructuras) {
         layerEstructuras.eachLayer(layer => {
             let featId = String(layer.feature.properties.ID || layer.feature.properties.id || '').toUpperCase();
@@ -517,22 +518,22 @@ function aplicarFiltrosFEN() {
             }
         });
 
-        // Zoom automático o Zoom Out global si no hay coincidencias
         if (boundsGroup.length > 0) {
             let groupBounds = L.latLngBounds(boundsGroup);
             map.fitBounds(groupBounds, { padding: [50, 50], maxZoom: 15, animate: true });
         } else if (nivelRiesgo !== "" || textId !== "" || tipoPeligro !== "") {
-            // Si el filtro no arroja resultados, hacemos zoom out general a Lima y Callao para evidenciar la ausencia de riesgo
             map.setView([-12.0464, -77.0428], 11, { animate: true });
         }
     }
 
+    // --- AUTO-ENCENDIDO AUTOMÁTICO DE CAPAS EN EL MAPA SEGÚN EL FILTRO SELECCIONADO ---
+    let chkInun = document.getElementById('chkInundacion');
+    let chkHuay = document.getElementById('chkHuaycos');
+
     if (tipoPeligro === 'inundacion') {
-        let chk = document.getElementById('chkInundacion');
-        if(chk && !chk.checked) { chk.checked = true; chk.dispatchEvent(new Event('change')); }
+        if(chkInun && !chkInun.checked) { chkInun.checked = true; chkInun.dispatchEvent(new Event('change')); }
     } else if (tipoPeligro === 'huaycos') {
-        let chk = document.getElementById('chkHuaycos');
-        if(chk && !chk.checked) { chk.checked = true; chk.dispatchEvent(new Event('change')); }
+        if(chkHuay && !chkHuay.checked) { chkHuay.checked = true; chkHuay.dispatchEvent(new Event('change')); }
     }
 }
 
