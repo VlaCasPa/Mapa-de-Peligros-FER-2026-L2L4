@@ -66,9 +66,12 @@
 
             <div class="aesthetic-separator"></div>
 
-            <!-- SECCIÓN 3: TABLA DE NIVELES DE PELIGRO -->
+      <!-- SECCIÓN 3: TABLA DE NIVELES DE PELIGRO -->
             <section class="panel-section table-section">
-                <h3>Matriz de Peligros</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <h3 style="margin-bottom: 0;">Matriz de Peligros</h3>
+                    <button id="btnExportExcel" class="btn-export" title="Exportar tabla completa a Excel (CSV)">📥 Exportar Excel</button>
+                </div>
                 <div class="table-container">
                     <table id="riskTable">
                         <thead>
