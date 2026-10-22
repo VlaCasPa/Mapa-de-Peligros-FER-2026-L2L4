@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Gestión de Peligros FEN - Línea 2 y 4</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Estilos Propios -->
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+    <div class="dashboard-container">
+        
+        <!-- PANEL IZQUIERDO (1/5 del espacio) -->
+        <aside class="side-panel">
+            <header class="panel-header">
+                <h2>Gestión de Peligros FEN</h2>
+                <p>Línea 2 y 4 del Metro de Lima</p>
+                <div class="telemetry">
+                    <span id="onlineUsers">🟢 1 en línea</span>
+                </div>
+            </header>
+
+            <!-- SECCIÓN 1: FILTROS ESTRATÉGICOS FEN CON CONTADOR -->
+            <section class="panel-section">
+                <h3>Filtros de Control FEN <span id="counterBadge" style="float: right; font-size: 0.75rem; background: #0b3d59; color: white; padding: 2px 6px; border-radius: 10px;">0 / 0</span></h3>
+                <div class="filter-group">
+                    <label>Filtrar por ID de Estructura:</label>
+                    <input type="text" id="filterId" placeholder="Ej. E26, PV01..." class="search-input">
+                </div>
+                <div class="filter-group">
+                    <label>Filtrar por Tipo de Peligro:</label>
+                    <select id="filterTipoPeligro" class="search-input">
+                        <option value="">-- Todos los Peligros --</option>
+                        <option value="inundacion">Peligro por Inundación</option>
+                        <option value="huaycos">Movimientos en Masa (Huaycos)</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Filtrar por Nivel de Riesgo:</label>
+                    <select id="filterNivelRiesgo" class="search-input">
+                        <option value="">-- Todos los Niveles --</option>
+                        <option value="MUY ALTO">🔴 Muy Alto</option>
+                        <option value="ALTO">🟠 Alto</option>
+                        <option value="MEDIO">🟡 Medio</option>
+                        <option value="BAJO">🟢 Bajo</option>
+                    </select>
+                </div>
+            </section>
+
+            <div class="aesthetic-separator"></div>
+
+            <!-- SECCIÓN 2: CAPAS (TABLERO ANDON) -->
+            <section class="panel-section">
+                <h3>Capas del Mapa</h3>
+                <div class="toggle-group">
+                    <label><input type="checkbox" id="chkDistritos" checked> Delimitación Distrital</label>
+                    <label><input type="checkbox" id="chkTopografia"> Topografía (Ráster MDE)</label>
+                    <label><input type="checkbox" id="chkInundacion"> Peligro Inundación</label>
+                    <label><input type="checkbox" id="chkHuaycos"> Peligro Mov. Masas</label>
+                </div>
+            </section>
+
+            <div class="aesthetic-separator"></div>
+
+            <!-- SECCIÓN 3: TABLA DE NIVELES DE PELIGRO EXTENDIDA -->
+            <section class="panel-section table-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <h3 style="margin-bottom: 0;">Matriz de Peligros <span id="tableCounter" style="font-size: 0.75rem; color: #666; font-weight: normal;">(0 expuestas)</span></h3>
+                    <button id="btnExportExcel" class="btn-export" title="Exportar tabla completa a Excel (.xls)">📥 Exportar Excel</button>
+                </div>
+                <div class="table-container">
+                    <table id="riskTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th id="thInun">Inundación</th>
+                                <th id="thHuay">Mov. Masas</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <!-- Datos inyectados por JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <footer class="panel-footer">
+                <button id="btnOpenReadme" class="btn-readme">📄 Información del Repositorio (README)</button>
+            </footer>
+        </aside>
+
+        <!-- PANEL DERECHO: MAPA (4/5 del espacio) -->
+        <main class="map-container">
+            <div id="map"></div>
+
+            <!-- VENTANA FLOTANTE GERENCIAL (MOVIBLE / DRAG & DROP) -->
+            <div id="floatingSummary" class="floating-summary-panel">
+                <div id="floatingHeader" class="floating-header">
+                    <span>📋 Resumen Ejecutivo FEN</span>
+                    <button id="btnCloseFloating" class="floating-close">&times;</button>
+                </div>
+                <div class="floating-body" id="floatingBody">
+                    <p style="font-size: 11px; color: #666; text-align: center; padding: 10px;">Sin filtros activos</p>
+                </div>
+            </div>
+
+            <!-- Leyenda Dinámica Inferior Derecha -->
+            <div id="mapLegend" class="map-legend">
+                <h4>Leyenda</h4>
+                <div id="legendContent">Seleccione una capa de riesgo</div>
+            </div>
+        </main>
+    </div>
+
+    <!-- VENTANA EMERGENTE (MODAL) PARA EL README TÉCNICO -->
+    <div id="readmeModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <button id="btnCloseReadme" class="modal-close">&times;</button>
+            <div class="markdown-body">
+                <h1> Mapa Geoespacial de Peligross: Línea 2 y Línea 4 del Metro de Lima ante el Fenómeno del Niño</h1>
+                <p><strong>Sistema de Alerta Temprana y Monitoreo Geoespacial para Infraestructuras Críticas</strong></p>
+                
+                <p>Este repositorio centraliza la arquitectura de datos geoespaciales, los mapas base ráster y el análisis topográfico orientados a evaluar la exposición física y la zonificación de peligros frente a las precipitaciones intensas asociadas al Fenómeno El Niño (FEN) sobre los frentes de obra, estaciones y estructuras definitivas del Proyecto.</p>
+                
+                <h2> Sustento Normativo y Fuentes Oficiales</h2>
+                <p>La información espacial, vectorial y matricial procesada en este dashboard proviene de bases de datos oficiales del Estado Peruano, garantizando trazabilidad técnica para la toma de decisiones:</p>
+                <ul>
+                    <li><strong>Entidad Generadora:</strong> Centro Nacional de Estimación, Prevención y Reducción del Riesgo de Desastres (CENEPRED) / Sistema de Información para la Gestión del Riesgo de Desastres (SIGRID).</li>
+                    <li><strong>Documento Técnico de Referencia:</strong> <em>Estudio de escenarios de riesgo por inundaciones y movimientos en masa ante lluvias intensas asociadas al Fenómeno El Niño</em> (Actualizado en base al <strong>Informe Técnico N° 69-2026/SENAMHI-DMA-SPC</strong>).</li>
+                    <li><strong>Enlace Oficial de Repositorio SIGRID:</strong> <a href="https://sigrid.cenepred.gob.pe/sigridv3/documento/22169" target="_blank" rel="noopener noreferrer">Consultar Repositorio SIGRID N° 22169</a>.</li>
+                </ul>
+
+                                <h2> Sustento Técnico del Procesamiento GIS</h2>
+                <p>El desarrollo cartográfico e integración de capas se estructuró bajo rigurosos estándares geoespaciales en RustGIS y QGIS:</p>
+                <ul>
+                    <li><strong>Análisis Topográfico de Elevación (MDE):</strong> Incorporación de modelos digitales de elevación georreferenciados para identificar microcuencas, pendientes críticas y cotas expuestas en los tramos de baja altitud (Callao) y estribaciones andinas (Lima Este).</li>
+                    <li><strong>Zonificación de Peligros (CENEPRED):</strong> Procesamiento vectorial de polígonos bajo clasificaciones estandarizadas de susceptibilidad y riesgo (Niveles: Muy Alto, Alto, Medio y Bajo) tanto para eventos de inundación como para movimientos en masa.</li>
+                    <li><strong>Matriz y Resumen de Estructuras Críticas:</strong> Integración dinámica de coordenadas (WGS84 EPSG:4326) de pozos de ventilación (PV) y estaciones (E), permitiendo un monitoreo cruzado automatizado mediante una matriz tabular sincronizada con la espacialidad del mapa.</li>
+                </ul>
+
+                <h2>⚠️ Alertamiento y Escenarios de Peligros FEN</h2>
+                <p>El sistema se enfoca estrictamente en la identificación y alertamiento preventivo de las zonas de exposición:</p>
+                <ul>
+                    <li><strong>Escenario 1 - Inundación (Muy Alto / Alto - Tramo Callao y Lima Centro):</strong> Alerta por saturación de sistemas de drenaje urbano, aniegos en zonas de baja cota topográfica e incremento del caudal y desborde potencial de los ríos Rímac y Chillón sobre frentes de excavación y accesos a estaciones subterráneas.</li>
+                    <li><strong>Escenario 2 - Movimientos en Masa / Huaycos (Muy Alto / Alto - Tramo Lima Este / Ate):</strong> Alerta por activación de quebradas secas en las estribaciones andinas, caída de detritos y flujos de escorrentía superficial que comprometen portales de obra, taludes y áreas de acopio logístico.</li>
+                </ul>
+
+                <h2>📂 Estructura del Repositorio</h2>
+                <ul>
+                    <li><code>/datos_vectoriales/</code>: Capas geográficas oficiales en formato GeoJSON (Límites distritales, Líneas de metro, Estructuras, Ríos Rímac y Chillón, y polígonos de peligro CENEPRED).</li>
+                    <li><code>/datos_raster/</code>: Modelos digitales de elevación optimizados (`elevacion.png`, `.pgw`, `.prj`) para el análisis topográfico del relieve.</li>
+                    <li><code>app.js</code>: Lógica del mapa interactivo Leaflet, motor de filtrado FEN cruzado (Mapa ⇄ Tabla) y herramientas de calibración y exportación de datos en formato Excel tabular (`.xls`).</li>
+                    <li><code>index.html</code> & <code>style.css</code>: Arquitectura de la interfaz y diseño responsive del Dashboard Gerencial.</li>
+                </ul>
+
+                <h2>📋 Ficha Técnica</h2>
+                <ul>
+                    <li><strong>Diseño:</strong> Vladimir Casas</li>
+                    <li><strong>Software GIS:</strong> Civil3D / Java / QGIS</li>
+                    <li><strong>Actualización del Sistema:</strong> Octubre 2026</li>
+                </ul>
+                
+                <div style="text-align: center; margin-top: 25px;">
+                    <button id="btnCloseModalBottom" class="btn-toggle active" style="width: 200px; display: inline-block; background-color: #0b3d59; color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; font-weight: bold;">Volver al Mapa</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- PapaParse para leer el CSV oficial -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- Script principal -->
+    <script src="app.js"></script>
+</body>
+</html>
