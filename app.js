@@ -27,14 +27,14 @@ function getTextColor(nivel) {
     return '#000000';
 }
 
-// 3. VARIABLES GLOBALES DE CAPAS Y ANCLAJE GEORREF
+// 3. VARIABLES GLOBALES DE CAPAS
 let layerRios, layerLineas, layerDistritos, layerEstructuras, layerInundacion, layerHuaycos;
 let rasterElevationLayer = null;
 let rawOriginBounds = null;
 let tableDataMaster = [];
 const baseUrl = 'datos_vectoriales/';
 
-// Conversor matemático exacto de UTM Zona 18S (EPSG:32718) a WGS84 (Lat/Lng)
+// Conversor UTM a WGS84
 function utm18SToLatLng(easting, northing) {
     const a = 6378137.0;
     const f = 1 / 298.257223563;
@@ -76,11 +76,10 @@ function utm18SToLatLng(easting, northing) {
     return [lat, lng];
 }
 
-// PARÁMETROS DE CALIBRACIÓN FINALES Y ANCLAJE (PIN)
 let SHIFT_LAT = 0.0020;
 let SHIFT_LNG = 0.0032;
 let RASTER_ROTATION = 0.0;
-let anchorMarker = null; // Variable para la tachuela / alfiler de anclaje
+let anchorMarker = null;
 let isAnchorModeActive = false;
 
 function updateRasterPosition() {
@@ -93,18 +92,15 @@ function updateRasterPosition() {
     if (rasterElevationLayer) {
         rasterElevationLayer.setBounds(calibratedBounds);
         if (rasterElevationLayer._image) {
-            // Si hay un marcador de anclaje puesto, rotamos desde ese punto exacto del mapa
             if (anchorMarker) {
                 let mapPoint = map.latLngToContainerPoint(anchorMarker.getLatLng());
                 let imagePoint = map.latLngToContainerPoint(rasterElevationLayer.getBounds().getCenter());
-                // Ajuste dinámico del pivote CSS de rotación respecto al anclaje
                 let pivotX = mapPoint.x - imagePoint.x + (rasterElevationLayer._image.clientWidth / 2);
                 let pivotY = mapPoint.y - imagePoint.y + (rasterElevationLayer._image.clientHeight / 2);
                 rasterElevationLayer._image.style.transformOrigin = `${pivotX}px ${pivotY}px`;
             } else {
                 rasterElevationLayer._image.style.transformOrigin = 'center center';
             }
-            rasterElevationLayer._image.style.transition = 'transform 0.1s ease';
             rasterElevationLayer._image.style.transform = `rotate(${RASTER_ROTATION}deg)`;
         }
     } else {
@@ -120,20 +116,16 @@ function updateRasterPosition() {
     }
 }
 
-// Lectura directa de elevacion.pgw (702 x 1160 px)
 const imgWidth = 702;
 const imgHeight = 1160;
 
 fetch('datos_raster/elevacion.pgw')
-    .then(res => {
-        if (!res.ok) throw new Error("No se encontró PGW");
-        return res.text();
-    })
+    .then(res => res.ok ? res.text() : Promise.reject())
     .then(text => {
         const lines = text.trim().split(/\r?\n/).map(Number);
         if (lines.length >= 6 && !isNaN(lines[0])) {
             const pixelSizeX = lines[0];
-            const pixelSizeY = lines[3]; // Negativo
+            const pixelSizeY = lines[3];
             const originX = lines[4];
             const originY = lines[5];
 
@@ -152,61 +144,45 @@ fetch('datos_raster/elevacion.pgw')
                 updateRasterPosition();
             }
         }
-    })
-    .catch(err => {
-        console.log("Usando límites exactos de la capa de Distritos.");
-    });
+    }).catch(() => {});
 
-// --- A. CAPA FIJA: RÍOS ---
-fetch(baseUrl + 'RIOS%20RIMAC%20CHILLON.geojson')
+
+// --- CARGA DE CAPAS VECTORIALES CON ORDEN JERÁRQUICO PERFECTO (Z-INDEX) ---
+
+// 1. CAPA INFERIOR: Peligro Inundación (Se carga lista en memoria)
+fetch(baseUrl + 'PELIGRO%20INUNDACION%20LIMA%20Y%20CALLAO.geojson')
     .then(res => res.json())
     .then(data => {
-        layerRios = L.geoJSON(data, { style: { color: '#00bcd4', weight: 3, opacity: 0.8 } }).addTo(map);
-    });
-
-// --- B. CAPA FIJA: LÍNEAS 2 Y 4 ---
-fetch(baseUrl + 'Lineas%20L2L4.geojson')
-    .then(res => res.json())
-    .then(data => {
-        layerLineas = L.geoJSON(data, { 
-            style: { color: '#0b3d59', weight: 5.5, opacity: 0.9, dashArray: null } 
-        }).addTo(map);
-    });
-
-// --- C. CAPA FIJA: ESTRUCTURAS ---
-fetch(baseUrl + 'ESTRUCTURAS%20L2L4.geojson')
-    .then(res => res.json())
-    .then(data => {
-        layerEstructuras = L.geoJSON(data, {
-            pointToLayer: function (feature, latlng) {
-                let idText = feature.properties.ID || 'N/A';
-                return L.marker(latlng, {
-                    icon: L.divIcon({
-                        className: 'custom-structure-icon',
-                        html: `<div class="structure-marker-container"><div class="structure-dot"></div><div class="structure-label">${idText}</div></div>`,
-                        iconSize: [60, 20],
-                        iconAnchor: [6, 10]
-                    })
-                });
+        layerInundacion = L.geoJSON(data, {
+            style: function(feature) {
+                return { fillColor: getColorPeligro(feature.properties.niv_sinu), weight: 1, color: '#fff', fillOpacity: 0.55 };
             },
-            onEachFeature: function (feature, layer) {
-                layer.bindPopup(`<b>Estructura ID:</b> ${feature.properties.ID || 'N/A'}`);
+            onEachFeature: function(feature, layer) {
+                layer.bindPopup(`<b>Distrito:</b> ${feature.properties.NOMBDIST}<br><b>Inundación:</b> ${feature.properties.niv_sinu}`);
             }
-        }).addTo(map);
+        });
     });
 
-// --- D. CAPA OPCIONAL: LÍMITES DISTRITALES ---
+// 2. CAPA INFERIOR: Peligro Movimientos en Masa (Se carga lista en memoria)
+fetch(baseUrl + 'PELIGRO%20MOVIMIENTOS%20EN%20MASAS%20LIMA%20Y%20CALLAO.geojson')
+    .then(res => res.json())
+    .then(data => {
+        layerHuaycos = L.geoJSON(data, {
+            style: function(feature) {
+                return { fillColor: getColorPeligro(feature.properties.npel_mm), weight: 1, color: '#fff', fillOpacity: 0.55 };
+            },
+            onEachFeature: function(feature, layer) {
+                layer.bindPopup(`<b>Distrito:</b> ${feature.properties.NOMBDIST}<br><b>Mov. Masas:</b> ${feature.properties.npel_mm}`);
+            }
+        });
+    });
+
+// 3. CAPA MEDIA: Delimitación Distrital
 fetch(baseUrl + 'DISTRITOS%20DE%20LIMA%20Y%20CALLAO.geojson')
     .then(res => res.json())
     .then(data => {
         layerDistritos = L.geoJSON(data, {
-            style: { 
-                fillColor: '#ffffff',
-                fillOpacity: 0.15,
-                color: '#666666',
-                weight: 3,
-                opacity: 0.8 
-            },
+            style: { fillColor: '#ffffff', fillOpacity: 0.15, color: '#666666', weight: 3, opacity: 0.8 },
             onEachFeature: function (feature, layer) {
                 let nombreDistrito = feature.properties.NOMBDIST || feature.properties.distrito || 'Distrito';
                 layer.bindTooltip(`<b>Distrito:</b> ${nombreDistrito}`, { sticky: true, direction: 'auto' });
@@ -221,45 +197,52 @@ fetch(baseUrl + 'DISTRITOS%20DE%20LIMA%20Y%20CALLAO.geojson')
                 });
             }
         });
-
         if(document.getElementById('chkDistritos').checked) layerDistritos.addTo(map);
 
         if (!rawOriginBounds) {
             const b = layerDistritos.getBounds();
-            rawOriginBounds = [
-                [b.getSouth(), b.getWest()],
-                [b.getNorth(), b.getEast()]
-            ];
+            rawOriginBounds = [[b.getSouth(), b.getWest()], [b.getNorth(), b.getEast()]];
             updateRasterPosition();
         }
     });
 
-// --- E. CAPA OPCIONAL: INUNDACIÓN ---
-fetch(baseUrl + 'PELIGRO%20INUNDACION%20LIMA%20Y%20CALLAO.geojson')
+// 4. CAPA MEDIA-ALTA: Ríos
+fetch(baseUrl + 'RIOS%20RIMAC%20CHILLON.geojson')
     .then(res => res.json())
     .then(data => {
-        layerInundacion = L.geoJSON(data, {
-            style: function(feature) {
-                return { fillColor: getColorPeligro(feature.properties.niv_sinu), weight: 1, color: '#fff', fillOpacity: 0.6 };
-            },
-            onEachFeature: function(feature, layer) {
-                layer.bindPopup(`<b>Distrito:</b> ${feature.properties.NOMBDIST}<br><b>Inundación:</b> ${feature.properties.niv_sinu}`);
-            }
-        });
+        layerRios = L.geoJSON(data, { style: { color: '#00bcd4', weight: 3, opacity: 0.8 } }).addTo(map);
     });
 
-// --- F. CAPA OPCIONAL: HUAYCOS ---
-fetch(baseUrl + 'PELIGRO%20MOVIMIENTOS%20EN%20MASAS%20LIMA%20Y%20CALLAO.geojson')
+// 5. CAPA ALTA: Líneas del Metro (L2 y L4) - Siempre visibles sobre los polígonos de peligro
+fetch(baseUrl + 'Lineas%20L2L4.geojson')
     .then(res => res.json())
     .then(data => {
-        layerHuaycos = L.geoJSON(data, {
-            style: function(feature) {
-                return { fillColor: getColorPeligro(feature.properties.npel_mm), weight: 1, color: '#fff', fillOpacity: 0.6 };
+        layerLineas = L.geoJSON(data, { 
+            style: { color: '#0b3d59', weight: 5.5, opacity: 0.9, dashArray: null } 
+        }).addTo(map);
+    });
+
+// 6. CAPA MÁS ALTA (TOP): Estructuras (Círculos negros + Etiquetas ID) - Siempre al frente
+fetch(baseUrl + 'ESTRUCTURAS%20L2L4.geojson')
+    .then(res => res.json())
+    .then(data => {
+        layerEstructuras = L.geoJSON(data, {
+            pointToLayer: function (feature, latlng) {
+                let idText = feature.properties.ID || 'N/A';
+                return L.marker(latlng, {
+                    icon: L.divIcon({
+                        className: 'custom-structure-icon',
+                        html: `<div class="structure-marker-container"><div class="structure-dot"></div><div class="structure-label">${idText}</div></div>`,
+                        iconSize: [60, 20],
+                        iconAnchor: [6, 10]
+                    }),
+                    zIndexOffset: 1000 // Garantiza que los puntos e IDs estén siempre encima de todo
+                });
             },
-            onEachFeature: function(feature, layer) {
-                layer.bindPopup(`<b>Distrito:</b> ${feature.properties.NOMBDIST}<br><b>Mov. Masas:</b> ${feature.properties.npel_mm}`);
+            onEachFeature: function (feature, layer) {
+                layer.bindPopup(`<b>Estructura ID:</b> ${feature.properties.ID || 'N/A'}`);
             }
-        });
+        }).addTo(map);
     });
 
 
@@ -323,7 +306,7 @@ function renderTable(data) {
 }
 
 
-// 5. WIDGET DE CALIBRACIÓN AVANZADA (Desplazamiento, Giro y Anclaje con Pin/Tachuela)
+// 5. WIDGET DE CALIBRACIÓN AVANZADA
 const calibBox = document.createElement('div');
 calibBox.id = 'rasterCalibBox';
 calibBox.style.cssText = 'display:none; position:absolute; bottom:25px; left:25px; background:white; padding:8px 12px; border-radius:6px; box-shadow:0 2px 10px rgba(0,0,0,0.2); z-index:1000; font-size:11px; text-align:center; width: 175px;';
@@ -352,7 +335,6 @@ document.getElementById('btnCalibDown').addEventListener('click', () => { SHIFT_
 document.getElementById('btnRotCCW').addEventListener('click', () => { RASTER_ROTATION -= STEP_ROT; updateRasterPosition(); });
 document.getElementById('btnRotCW').addEventListener('click', () => { RASTER_ROTATION += STEP_ROT; updateRasterPosition(); });
 
-// Evento para activar la colocación del Pin/Tachuela en el mapa
 document.getElementById('btnToggleAnchor').addEventListener('click', () => {
     isAnchorModeActive = !isAnchorModeActive;
     const btn = document.getElementById('btnToggleAnchor');
@@ -367,15 +349,10 @@ document.getElementById('btnToggleAnchor').addEventListener('click', () => {
     }
 });
 
-// Clic en el mapa para fijar la tachuela de anclaje
 map.on('click', function(e) {
     if (!isAnchorModeActive) return;
+    if (anchorMarker) map.removeLayer(anchorMarker);
     
-    if (anchorMarker) {
-        map.removeLayer(anchorMarker);
-    }
-    
-    // Crear ícono de tachuela / alfiler personalizado
     const pinIcon = L.divIcon({
         className: 'custom-pin-icon',
         html: `<div style="background:#d32f2f; color:white; width:22px; height:22px; border-radius:50%; border:2px solid white; display:flex; align-items:center; justify-content:center; font-size:12px; box-shadow:0 2px 5px rgba(0,0,0,0.3);">📍</div>`,
@@ -384,19 +361,18 @@ map.on('click', function(e) {
     });
 
     anchorMarker = L.marker(e.latlng, { icon: pinIcon }).addTo(map);
-    anchorMarker.bindPopup(`<b>Punto de Anclaje de Giro</b><br>Lat: ${e.latlng.lat.toFixed(4)}, Lng: ${e.latlng.lng.toFixed(4)}`).openPopup();
+    anchorMarker.bindPopup(`<b>Punto de Anclaje</b><br>Lat: ${e.latlng.lat.toFixed(4)}, Lng: ${e.latlng.lng.toFixed(4)}`).openPopup();
 
     isAnchorModeActive = false;
     const btn = document.getElementById('btnToggleAnchor');
     btn.style.background = '#f0f4f8';
     btn.style.color = '#0b3d59';
     btn.innerText = '📍 Pin Fijado (Cambiar)';
-    
     updateRasterPosition();
 });
 
 
-// 6. CONTROL DE CHECKBOXES
+// 6. CONTROL BLINDADO DE CHECKBOXES (Eventos estables sin fallos)
 document.getElementById('chkDistritos').addEventListener('change', function() {
     if(this.checked) map.addLayer(layerDistritos);
     else map.removeLayer(layerDistritos);
@@ -428,28 +404,40 @@ document.getElementById('chkTopografia').addEventListener('change', function() {
     }
 });
 
+// Control robusto para Inundación (Exclusivo y estable)
 document.getElementById('chkInundacion').addEventListener('change', function() {
-    let huaycoChk = document.getElementById('chkInundacion');
+    let huaycoChk = document.getElementById('chkHuaycos');
     if(this.checked) {
         huaycoChk.checked = false;
         if(map.hasLayer(layerHuaycos)) map.removeLayer(layerHuaycos);
-        map.addLayer(layerInundacion);
+        if(layerInundacion) {
+            map.addLayer(layerInundacion);
+            // Asegurar que las líneas y estructuras queden siempre por encima
+            if(layerLineas) layerLineas.bringToFront();
+            if(layerEstructuras) layerEstructuras.bringToFront();
+        }
         updateLegend('Inundación');
     } else {
-        map.removeLayer(layerInundacion);
+        if(layerInundacion) map.removeLayer(layerInundacion);
         clearLegend();
     }
 });
 
+// Control robusto para Movimientos en Masa (Exclusivo y estable)
 document.getElementById('chkHuaycos').addEventListener('change', function() {
     let inunChk = document.getElementById('chkInundacion');
     if(this.checked) {
         inunChk.checked = false;
         if(map.hasLayer(layerInundacion)) map.removeLayer(layerInundacion);
-        map.addLayer(layerHuaycos);
+        if(layerHuaycos) {
+            map.addLayer(layerHuaycos);
+            // Asegurar que las líneas y estructuras queden siempre por encima
+            if(layerLineas) layerLineas.bringToFront();
+            if(layerEstructuras) layerEstructuras.bringToFront();
+        }
         updateLegend('Movimientos en Masa');
     } else {
-        map.removeLayer(layerHuaycos);
+        if(layerHuaycos) map.removeLayer(layerHuaycos);
         clearLegend();
     }
 });
@@ -491,7 +479,6 @@ const btnCloseBottom = document.getElementById('btnCloseModalBottom');
 
 btnOpen.addEventListener('click', () => { modal.style.display = 'flex'; });
 btnClose.addEventListener('click', () => { modal.style.display = 'none'; });
-btnOpen.addEventListener('click', () => { modal.style.display = 'flex'; });
 btnCloseBottom.addEventListener('click', () => { modal.style.display = 'none'; });
 
 modal.addEventListener('click', (e) => {
