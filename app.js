@@ -165,7 +165,6 @@ fetch('datos_raster/elevacion.pgw')
 
 // --- CARGA DE CAPAS VECTORIALES ---
 
-// 1. Peligro Inundación (Con verificación automática si el filtro ya estaba activo)
 fetch(baseUrl + 'PELIGRO%20INUNDACION%20LIMA%20Y%20CALLAO.geojson')
     .then(res => res.json())
     .then(data => {
@@ -177,12 +176,8 @@ fetch(baseUrl + 'PELIGRO%20INUNDACION%20LIMA%20Y%20CALLAO.geojson')
                 layer.bindPopup(`<b>Distrito:</b> ${feature.properties.NOMBDIST}<br><b>Inundación:</b> ${feature.properties.niv_sinu}`);
             }
         });
-        if (document.getElementById('chkInundacion') && document.getElementById('chkInundacion').checked) {
-            sincronizarCapasMapa('INUNDACION');
-        }
     });
 
-// 2. Peligro Movimientos en Masa
 fetch(baseUrl + 'PELIGRO%20MOVIMIENTOS%20EN%20MASAS%20LIMA%20Y%20CALLAO.geojson')
     .then(res => res.json())
     .then(data => {
@@ -194,12 +189,8 @@ fetch(baseUrl + 'PELIGRO%20MOVIMIENTOS%20EN%20MASAS%20LIMA%20Y%20CALLAO.geojson'
                 layer.bindPopup(`<b>Distrito:</b> ${feature.properties.NOMBDIST}<br><b>Mov. Masas:</b> ${feature.properties.npel_mm}`);
             }
         });
-        if (document.getElementById('chkHuaycos') && document.getElementById('chkHuaycos').checked) {
-            sincronizarCapasMapa('HUAYCOS');
-        }
     });
 
-// 3. Delimitación Distrital
 fetch(baseUrl + 'DISTRITOS%20DE%20LIMA%20Y%20CALLAO.geojson')
     .then(res => res.json())
     .then(data => {
@@ -228,14 +219,12 @@ fetch(baseUrl + 'DISTRITOS%20DE%20LIMA%20Y%20CALLAO.geojson')
         }
     });
 
-// 4. Ríos
 fetch(baseUrl + 'RIOS%20RIMAC%20CHILLON.geojson')
     .then(res => res.json())
     .then(data => {
         layerRios = L.geoJSON(data, { style: { color: '#00bcd4', weight: 3, opacity: 0.8 } }).addTo(map);
     });
 
-// 5. Líneas del Metro (L2 y L4) - Grosor en 7.5
 fetch(baseUrl + 'Lineas%20L2L4.geojson')
     .then(res => res.json())
     .then(data => {
@@ -244,7 +233,6 @@ fetch(baseUrl + 'Lineas%20L2L4.geojson')
         }).addTo(map);
     });
 
-// 6. Estructuras
 fetch(baseUrl + 'ESTRUCTURAS%20L2L4.geojson')
     .then(res => res.json())
     .then(data => {
@@ -274,7 +262,7 @@ fetch(baseUrl + 'ESTRUCTURAS%20L2L4.geojson')
     });
 
 
-// --- CARGA DE TABLA CSV ---
+// --- CARGA DE TABLA CSV Y DETECCIÓN EXACTA DE COLUMNAS ---
 const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTE27I4VwWlYKQEgCkNRcGydFG8zFseeR5_0SFF3F_-HEW_VLBPUY_G8uCuexKw2NkkIEq3Wl1i7ipE/pub?gid=1027540316&single=true&output=csv';
 
 Papa.parse(csvUrl, {
@@ -289,10 +277,9 @@ Papa.parse(csvUrl, {
 
 function extraerColumnasFila(row) {
     let keys = Object.keys(row);
-    // Buscar por nombre normalizado sin tildes o por posición de columna (0: ID, 1: Inundación, 2: Mov. Masas)
     let idKey = keys.find(k => normalizarTexto(k).includes('ID')) || keys[0];
-    let inunKey = keys.find(k => normalizarTexto(k).includes('INUND')) || keys[1];
-    let masasKey = keys.find(k => normalizarTexto(k).includes('MOV') || normalizarTexto(k).includes('MASA') || normalizarTexto(k).includes('HUAYC')) || keys[2];
+    let inunKey = keys.find(k => normalizarTexto(k).includes('INUNDACI') || normalizarTexto(k).includes('INUNDACION')) || keys[1];
+    let masasKey = keys.find(k => normalizarTexto(k).includes('MOVIMIENTO') || normalizarTexto(k).includes('MASAS') || normalizarTexto(k).includes('HUAYCO')) || keys[2];
 
     return {
         structId: idKey ? String(row[idKey] || '').trim() : '',
@@ -415,11 +402,11 @@ function actualizarVentanaFlotante(elementosFiltrados, modoEscenario, hayFiltroA
     }
 
     elementosFiltrados.forEach(item => {
-        // Si el modo es HUAYCOS muestra huaycos; si es INUNDACION (o general) muestra inundación
+        // Selecciona el valor de la columna correspondiente al escenario activo
         let nivelTexto = (modoEscenario === 'HUAYCOS') ? item.huaycos : item.inundacion;
         let colorNivel = getColorPeligro(nivelTexto);
         let textoColorNivel = getTextColor(nivelTexto);
-        let tipoLabel = (modoEscenario === 'HUAYCOS') ? 'Mov. Masas' : ((modoEscenario === 'INUNDACION') ? 'Inundación' : 'Inund. / MM');
+        let tipoLabel = (modoEscenario === 'HUAYCOS') ? 'Mov. Masas' : ((modoEscenario === 'INUNDACION') ? 'Inundación' : 'Riesgo FEN');
 
         let div = document.createElement('div');
         div.className = 'floating-item';
@@ -449,7 +436,7 @@ function actualizarVentanaFlotante(elementosFiltrados, modoEscenario, hayFiltroA
 }
 
 
-// --- FUNCIÓN CENTRALIZADA PARA PRENDER/APAGAR CAPAS TEMÁTICAS ---
+// --- FUNCIÓN DE SINCRONIZACIÓN DE CAPAS GEOGRÁFICAS ---
 function sincronizarCapasMapa(modoEscenario) {
     let chkInun = document.getElementById('chkInundacion');
     let chkHuay = document.getElementById('chkHuaycos');
@@ -458,12 +445,8 @@ function sincronizarCapasMapa(modoEscenario) {
         if (chkInun) chkInun.checked = true;
         if (chkHuay) chkHuay.checked = false;
 
-        if (layerHuaycos && map.hasLayer(layerHuaycos)) {
-            map.removeLayer(layerHuaycos);
-        }
-        if (layerInundacion && !map.hasLayer(layerInundacion)) {
-            map.addLayer(layerInundacion);
-        }
+        if (layerHuaycos && map.hasLayer(layerHuaycos)) map.removeLayer(layerHuaycos);
+        if (layerInundacion && !map.hasLayer(layerInundacion)) map.addLayer(layerInundacion);
         updateLegend('Inundación');
         if (layerLineas) layerLineas.bringToFront();
         if (layerEstructuras) layerEstructuras.bringToFront();
@@ -472,12 +455,8 @@ function sincronizarCapasMapa(modoEscenario) {
         if (chkHuay) chkHuay.checked = true;
         if (chkInun) chkInun.checked = false;
 
-        if (layerInundacion && map.hasLayer(layerInundacion)) {
-            map.removeLayer(layerInundacion);
-        }
-        if (layerHuaycos && !map.hasLayer(layerHuaycos)) {
-            map.addLayer(layerHuaycos);
-        }
+        if (layerInundacion && map.hasLayer(layerInundacion)) map.removeLayer(layerInundacion);
+        if (layerHuaycos && !map.hasLayer(layerHuaycos)) map.addLayer(layerHuaycos);
         updateLegend('Movimientos en Masa');
         if (layerLineas) layerLineas.bringToFront();
         if (layerEstructuras) layerEstructuras.bringToFront();
@@ -492,7 +471,7 @@ function sincronizarCapasMapa(modoEscenario) {
 }
 
 
-// --- MOTOR DE FILTRADO FEN BLINDADO (IDÉNTICO PARA INUNDACIÓN Y HUAYCOS) ---
+// --- MOTOR DE FILTRADO FEN UNIFICADO Y 100% SIMÉTRICO ---
 function aplicarFiltrosFEN() {
     let inputIdEl = document.getElementById('filterId');
     let selectTipoEl = document.getElementById('filterTipoPeligro');
@@ -500,14 +479,13 @@ function aplicarFiltrosFEN() {
 
     let textId = inputIdEl ? normalizarTexto(inputIdEl.value) : '';
     
-    // Detectar escenario tanto por value como por texto visible del option seleccionado
     let rawTipoVal = selectTipoEl ? normalizarTexto(selectTipoEl.value) : '';
     let rawTipoText = (selectTipoEl && selectTipoEl.selectedIndex >= 0) ? normalizarTexto(selectTipoEl.options[selectTipoEl.selectedIndex].text) : '';
     
     let modoEscenario = 'TODOS';
-    if (rawTipoVal.includes('INUND') || (rawTipoText.includes('INUND') && !rawTipoText.includes('TODOS'))) {
+    if (rawTipoVal.includes('INUND') || rawTipoText.includes('INUND')) {
         modoEscenario = 'INUNDACION';
-    } else if (rawTipoVal.includes('HUAYC') || rawTipoVal.includes('MASA') || rawTipoVal.includes('MOV') || (rawTipoText.includes('MASA') && !rawTipoText.includes('TODOS'))) {
+    } else if (rawTipoVal.includes('HUAYC') || rawTipoVal.includes('MASA') || rawTipoVal.includes('MOV') || rawTipoText.includes('MASA') || rawTipoText.includes('MOV')) {
         modoEscenario = 'HUAYCOS';
     }
 
@@ -516,10 +494,10 @@ function aplicarFiltrosFEN() {
 
     let hayFiltroActivo = (textId !== '' || modoEscenario !== 'TODOS' || normNivelBuscado !== '');
 
-    // 1. Prender automáticamente la capa correspondiente en el mapa
+    // 1. Sincronizar capas en el mapa
     sincronizarCapasMapa(modoEscenario);
 
-    // 2. Atenuar encabezados de columna no activa
+    // 2. Atenuar encabezados de tabla no activos
     let thInun = document.getElementById('thInun');
     let thHuay = document.getElementById('thHuay');
     if (modoEscenario === 'INUNDACION') {
@@ -533,7 +511,7 @@ function aplicarFiltrosFEN() {
         if (thHuay) thHuay.classList.remove('col-dimmed');
     }
 
-    // 3. Evaluar cada fila leyendo directamente de las celdas pintadas en la tabla
+    // 3. Evaluar filas de la tabla
     let rows = document.querySelectorAll('#tableBody tr');
     let idsVisibles = new Set();
     let totalVisibles = 0;
@@ -547,8 +525,8 @@ function aplicarFiltrosFEN() {
         let cellHuay = tr.querySelector('.td-huaycos');
 
         let sId = (tr.dataset.structId || (cellId ? cellId.textContent : '')).toUpperCase().trim();
-        let textoInunOriginal = cellInun ? cellInun.textContent.trim() : (tr.dataset.inundacion || '');
-        let textoHuayOriginal = cellHuay ? cellHuay.textContent.trim() : (tr.dataset.huaycos || '');
+        let textoInunOriginal = cellInun ? cellInun.textContent.trim() : '';
+        let textoHuayOriginal = cellHuay ? cellHuay.textContent.trim() : '';
 
         let nivelFilaInun = obtenerNivelEstandar(textoInunOriginal);
         let nivelFilaHuay = obtenerNivelEstandar(textoHuayOriginal);
@@ -594,7 +572,7 @@ function aplicarFiltrosFEN() {
         }
     });
 
-    // 4. Actualizar contadores en Filtros y Tabla
+    // 4. Actualizar Contadores
     let badge = document.getElementById('counterBadge');
     let tCounter = document.getElementById('tableCounter');
     if (badge) badge.innerText = `${totalVisibles} / ${totalGeneral}`;
@@ -603,7 +581,7 @@ function aplicarFiltrosFEN() {
     // 5. Actualizar Ventana Flotante Gerencial
     actualizarVentanaFlotante(listaParaFlotante, modoEscenario, hayFiltroActivo);
 
-    // 6. Actualizar marcadores en el mapa y hacer Zoom (o Zoom Out si es 0)
+    // 6. Actualizar mapa y zoom
     if (layerEstructuras) {
         layerEstructuras.eachLayer(layer => {
             let featId = String(layer.feature.properties.ID || layer.feature.properties.id || '').toUpperCase().trim();
@@ -634,7 +612,6 @@ function aplicarFiltrosFEN() {
                 let groupBounds = L.latLngBounds(boundsGroup);
                 map.fitBounds(groupBounds, { padding: [50, 50], maxZoom: 15, animate: true });
             } else {
-                // Si el filtro da 0 resultados, hace Zoom Out global a Lima y Callao
                 map.setView([-12.0464, -77.0428], 11, { animate: true });
             }
         }
@@ -777,7 +754,7 @@ map.on('click', function(e) {
 });
 
 
-// 6. CONTROL MANUAL DE CHECKBOXES (TABLERO ANDON)
+// 6. CONTROL MANUAL DE CHECKBOXES
 document.getElementById('chkDistritos').addEventListener('change', function() {
     if(this.checked) map.addLayer(layerDistritos);
     else map.removeLayer(layerDistritos);
