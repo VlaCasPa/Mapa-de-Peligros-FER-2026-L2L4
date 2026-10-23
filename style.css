@@ -307,13 +307,13 @@ tr.filtered-out {
     /* 3. MAPA (CORRECCIÓN: CONTROL ESTRICTO DE ALTURA Y DESBORDAMIENTO) */
     .map-container {
         width: 100%;
-        height: 44vh; /* Altura que lo lleva hasta E4-04 */
-        flex: 0 0 44vh;
+        height: 46vh; /* Altura que lo lleva hasta E4-04 */
+        flex: 0 0 46vh;
         position: relative;
         overflow: hidden; /* Evita que el mapa invada la tabla */
     }
     
-    /* ¡FIX CRÍTICO! Fuerza a Leaflet a respetar el 44vh en móvil y anula el 100dvh de PC */
+    /* ¡FIX CRÍTICO! Fuerza a Leaflet a respetar el 46vh en móvil y anula el 100dvh de PC */
     #map {
         height: 100% !important; 
         width: 100%;
