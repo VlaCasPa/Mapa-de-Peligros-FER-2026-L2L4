@@ -244,10 +244,10 @@ tr.filtered-out {
 
 
 /* ---------------------------------------------------- */
-/* VERSIÓN MÓVIL (CELULAR) - LÍMITE EXACTO EN "E19"     */
+/* VERSIÓN MÓVIL (CELULAR) - MATRIZ AMPLIADA            */
 /* ---------------------------------------------------- */
 @media (max-width: 900px) {
-    body, html { height: 100%; width: 100%; overflow: hidden; }
+    body, html { height: 100%; width: 100%; overflow: hidden; background-color: #f3f4f6; }
     
     .dashboard-container { 
         display: flex;
@@ -268,7 +268,7 @@ tr.filtered-out {
         color: white;
         padding: 4px 8px;
         width: 100%;
-        height: 38px;
+        height: 35px;
         flex: 0 0 auto;
     }
     .header-titles h2 { font-size: 0.75rem; margin: 0; }
@@ -304,16 +304,15 @@ tr.filtered-out {
     .mobile-controls-panel .search-input { height: 20px; font-size: 0.62rem; padding: 1px 3px; }
     .mobile-controls-panel .toggle-group label { font-size: 0.58rem; margin-bottom: 1px; }
 
-    /* 3. MAPA (CORRECCIÓN: CONTROL ESTRICTO DE ALTURA Y DESBORDAMIENTO) */
+    /* 3. MAPA (REDUCIDO A 32vh PARA DAR MÁS ESPACIO A LA TABLA) */
     .map-container {
         width: 100%;
-        height: 46vh; /* Altura que lo lleva hasta E4-04 */
-        flex: 0 0 46vh;
+        height: 32vh;
+        flex: 0 0 32vh;
         position: relative;
-        overflow: hidden; /* Evita que el mapa invada la tabla */
+        overflow: hidden;
     }
     
-    /* ¡FIX CRÍTICO! Fuerza a Leaflet a respetar el 46vh en móvil y anula el 100dvh de PC */
     #map {
         height: 100% !important; 
         width: 100%;
@@ -322,13 +321,13 @@ tr.filtered-out {
     .floating-summary-panel { top: 4px; left: 4px; width: 180px; max-height: 110px; }
     .map-legend { bottom: 6px; right: 6px; max-width: 125px; font-size: 0.6rem; }
 
-    /* 4. MATRIZ TABULAR INFERIOR (COMPLETAMENTE VISIBLE Y SCROLLABLE) */
+    /* 4. MATRIZ TABULAR INFERIOR (AMPLIADA PARA VER MÁS FILAS ANTES DEL SCROLL) */
     .table-section-mobile {
         display: flex !important;
         flex-direction: column;
         width: 100%;
-        flex: 1; /* Absorbe todo el espacio restante */
-        min-height: 0; /* Vital para permitir el scroll en Flexbox */
+        flex: 1;
+        min-height: 0;
         background: white;
         border-top: 1px solid #ccc;
         padding: 4px 6px;
@@ -342,8 +341,8 @@ tr.filtered-out {
         border-radius: 4px; 
     }
     
-    #riskTableMob { font-size: 0.6rem; }
-    #riskTableMob th { padding: 3px; font-size: 0.6rem; background-color: var(--primary-blue); color: white; position: sticky; top: 0; z-index: 2; }
-    #riskTableMob td { padding: 2px 3px; }
-    .table-section-mobile .btn-export { padding: 2px 4px; font-size: 0.55rem; }
+    #riskTableMob { font-size: 0.62rem; }
+    #riskTableMob th { padding: 4px; font-size: 0.62rem; background-color: var(--primary-blue); color: white; position: sticky; top: 0; z-index: 2; }
+    #riskTableMob td { padding: 3px 4px; }
+    .table-section-mobile .btn-export { padding: 2px 4px; font-size: 0.58rem; }
 }
