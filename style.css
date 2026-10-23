@@ -268,28 +268,28 @@ tr.filtered-out {
         color: white;
         padding: 4px 8px;
         width: 100%;
-        height: 38px;
+        height: 36px;
         flex: 0 0 auto;
     }
-    .header-titles h2 { font-size: 0.78rem; margin: 0; }
-    .telemetry-inline { font-size: 0.58rem; opacity: 0.9; }
+    .header-titles h2 { font-size: 0.75rem; margin: 0; }
+    .telemetry-inline { font-size: 0.55rem; opacity: 0.9; }
     .btn-readme-inline {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 23px;
-        height: 23px;
+        width: 22px;
+        height: 22px;
         background: rgba(255,255,255,0.15);
         color: white;
         border: 1px solid rgba(255,255,255,0.4);
         border-radius: 50%;
-        font-size: 0.72rem;
+        font-size: 0.68rem;
         font-weight: bold;
         font-style: italic;
         cursor: pointer;
     }
 
-    /* 2. FILTROS Y CAPAS ULTRA-COMPACTOS (-1 PUNTO) */
+    /* 2. FILTROS Y CAPAS ULTRA-COMPACTOS */
     .mobile-controls-panel {
         display: block !important;
         width: 100%;
@@ -298,23 +298,23 @@ tr.filtered-out {
         border-bottom: 1px solid #ddd;
     }
     .mobile-grid-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
-    .mobile-controls-panel .panel-section { padding: 3px 6px; }
-    .mobile-controls-panel .panel-section h3 { font-size: 0.68rem; margin-bottom: 1px; color: var(--primary-blue); }
-    .mobile-controls-panel .filter-group label { font-size: 0.58rem; margin-bottom: 1px; color: #555; }
-    .mobile-controls-panel .search-input { height: 21px; font-size: 0.65rem; padding: 1px 3px; }
-    .mobile-controls-panel .toggle-group label { font-size: 0.6rem; margin-bottom: 1px; }
+    .mobile-controls-panel .panel-section { padding: 2px 6px; }
+    .mobile-controls-panel .panel-section h3 { font-size: 0.65rem; margin-bottom: 1px; color: var(--primary-blue); }
+    .mobile-controls-panel .filter-group label { font-size: 0.55rem; margin-bottom: 1px; color: #555; }
+    .mobile-controls-panel .search-input { height: 20px; font-size: 0.62rem; padding: 1px 3px; }
+    .mobile-controls-panel .toggle-group label { font-size: 0.58rem; margin-bottom: 1px; }
 
-    /* 3. MAPA (ALTURA EXACTA HASTA LA ZONA DE E19 - ~30vh) */
+    /* 3. MAPA (ALTURA REDUCIDA EXACTAMENTE HASTA LA ZONA DE E19 -> ~27vh) */
     .map-container {
         width: 100%;
-        height: 30vh;
-        flex: 0 0 30vh;
+        height: 27vh;
+        flex: 0 0 27vh;
         position: relative;
     }
-    .floating-summary-panel { top: 4px; left: 4px; width: 190px; max-height: 120px; }
-    .map-legend { bottom: 6px; right: 6px; max-width: 130px; font-size: 0.62rem; }
+    .floating-summary-panel { top: 4px; left: 4px; width: 180px; max-height: 110px; }
+    .map-legend { bottom: 6px; right: 6px; max-width: 125px; font-size: 0.6rem; }
 
-    /* 4. MATRIZ TABULAR INFERIOR (SUBE Y OCUPA EL RESTO CON SCROLL) */
+    /* 4. MATRIZ TABULAR INFERIOR (SUBE Y OCUPA TODO EL RESTO CON SCROLL) */
     .table-section-mobile {
         display: flex !important;
         flex-direction: column;
@@ -334,8 +334,8 @@ tr.filtered-out {
         border-radius: 4px; 
     }
     
-    #riskTableMob { font-size: 0.62rem; }
-    #riskTableMob th { padding: 3px; font-size: 0.62rem; background-color: var(--primary-blue); color: white; position: sticky; top: 0; z-index: 2; }
+    #riskTableMob { font-size: 0.6rem; }
+    #riskTableMob th { padding: 3px; font-size: 0.6rem; background-color: var(--primary-blue); color: white; position: sticky; top: 0; z-index: 2; }
     #riskTableMob td { padding: 2px 3px; }
-    .table-section-mobile .btn-export { padding: 2px 4px; font-size: 0.58rem; }
+    .table-section-mobile .btn-export { padding: 2px 4px; font-size: 0.55rem; }
 }
