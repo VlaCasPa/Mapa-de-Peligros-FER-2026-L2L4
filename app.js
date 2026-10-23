@@ -320,12 +320,15 @@ fetch(baseUrl + 'ESTRUCTURAS%20L2L4.geojson')
     });
 
 
-// --- WIDGET DE CALIBRACIÓN RÁSTER ---
+// --- WIDGET DE CALIBRACIÓN RÁSTER CON BOTÓN DE CIERRE (×) ---
 const calibBox = document.createElement('div');
 calibBox.id = 'rasterCalibBox';
 calibBox.style.cssText = 'display:none; position:absolute; bottom:25px; left:25px; background:white; padding:8px 12px; border-radius:6px; box-shadow:0 2px 10px rgba(0,0,0,0.2); z-index:1000; font-size:11px; text-align:center; width: 175px;';
 calibBox.innerHTML = `
-    <div style="font-weight:bold; color:#0b3d59; margin-bottom:4px;">🎯 Calibración con Pin</div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+        <span style="font-weight:bold; color:#0b3d59;">🎯 Calibración con Pin</span>
+        <button id="btnCloseCalib" style="background:none; border:none; font-size:16px; font-weight:bold; color:#555; cursor:pointer; padding:0 4px;" title="Cerrar">&times;</button>
+    </div>
     <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:3px; margin-bottom:4px;">
         <button id="btnRotCCW" style="padding:3px; cursor:pointer;" title="Giro Antihorario">↺</button>
         <button id="btnCalibUp" style="padding:3px; cursor:pointer;" title="Mover Arriba">▲</button>
@@ -338,6 +341,10 @@ calibBox.innerHTML = `
     <div id="calibValues" style="font-size:9.5px; color:#555; white-space: pre-line;">Lat: 0° | Lng: 0°\nGiro: 0°</div>
 `;
 document.querySelector('.map-container').appendChild(calibBox);
+
+document.getElementById('btnCloseCalib').addEventListener('click', () => {
+    calibBox.style.display = 'none';
+});
 
 const STEP_POS = 0.0002;
 const STEP_ROT = 0.25;
@@ -884,7 +891,7 @@ function updateLegend(tipo) {
             <div class="legend-item"><span class="legend-color" style="background:#d32f2f"></span>Muy Alto</div>
             <div class="legend-item"><span class="legend-color" style="background:#f57c00"></span>Alto</div>
             <div class="legend-item"><span class="legend-color" style="background:#fbc02d"></span>Medio</div>
-            <div class="legend-item"><span class="legend-color" style="background:#388e3c"></span>Bajoo</div>
+            <div class="legend-item"><span class="legend-color" style="background:#388e3c"></span>Bajo</div>
         `;
     }
 }
@@ -910,4 +917,3 @@ if(modal) {
     if(btnCloseBottom) btnCloseBottom.addEventListener('click', () => { modal.style.display = 'none'; });
     modal.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
 }
-
