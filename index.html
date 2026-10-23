@@ -51,7 +51,7 @@
 
     <div class="dashboard-container">
         
-        <!-- PANEL IZQUIERDO (1/5 del espacio) -->
+        <!-- PANEL IZQUIERDO / SUPERIOR MÓVIL -->
         <aside class="side-panel">
             <header class="panel-header">
                 <h2>Gestión de Peligros FEN</h2>
@@ -61,53 +61,54 @@
                 </div>
             </header>
 
-            <!-- SECCIÓN 1: FILTROS ESTRATÉGICOS FEN CON CONTADOR -->
-            <section class="panel-section">
-                <h3>Filtros de Control FEN <span id="counterBadge" style="float: right; font-size: 0.75rem; background: #0b3d59; color: white; padding: 2px 6px; border-radius: 10px;">0 / 0</span></h3>
-                <div class="filter-group">
-                    <label>Filtrar por ID de Estructura:</label>
-                    <input type="text" id="filterId" placeholder="Ej. E26, PV01..." class="search-input">
-                </div>
-                <div class="filter-group">
-                    <label>Filtrar por Tipo de Peligro:</label>
-                    <select id="filterTipoPeligro" class="search-input">
-                        <option value="">-- Todos los Peligros --</option>
-                        <option value="inundacion">Peligro por Inundación</option>
-                        <option value="huaycos">Movimientos en Masa (Huaycos)</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label>Filtrar por Nivel de Riesgo:</label>
-                    <select id="filterNivelRiesgo" class="search-input">
-                        <option value="">-- Todos los Niveles --</option>
-                        <option value="MUY ALTO">🔴 Muy Alto</option>
-                        <option value="ALTO">🟠 Alto</option>
-                        <option value="MEDIO">🟡 Medio</option>
-                        <option value="BAJO">🟢 Bajo</option>
-                    </select>
-                </div>
-            </section>
+            <!-- CONTENEDOR FLEX PARA ORGANIZAR FILTROS Y CAPAS EN MÓVIL (DOS COLUMNAS) -->
+            <div class="mobile-controls-grid">
+                <!-- SECCIÓN 1: FILTROS ESTRATÉGICOS FEN -->
+                <section class="panel-section">
+                    <h3>Filtros FEN <span id="counterBadge" style="float: right; font-size: 0.70rem; background: #0b3d59; color: white; padding: 2px 5px; border-radius: 8px;">0 / 0</span></h3>
+                    <div class="filter-group">
+                        <label>ID Estructura:</label>
+                        <input type="text" id="filterId" placeholder="Ej. E26, PV01..." class="search-input">
+                    </div>
+                    <div class="filter-group">
+                        <label>Tipo de Peligro:</label>
+                        <select id="filterTipoPeligro" class="search-input">
+                            <option value="">-- Todos --</option>
+                            <option value="inundacion">Inundación</option>
+                            <option value="huaycos">Mov. en Masa</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Nivel de Riesgo:</label>
+                        <select id="filterNivelRiesgo" class="search-input">
+                            <option value="">-- Todos --</option>
+                            <option value="MUY ALTO">🔴 Muy Alto</option>
+                            <option value="ALTO">🟠 Alto</option>
+                            <option value="MEDIO">🟡 Medio</option>
+                            <option value="BAJO">🟢 Bajo</option>
+                        </select>
+                    </div>
+                </section>
 
-            <div class="aesthetic-separator"></div>
-
-            <!-- SECCIÓN 2: CAPAS (TABLERO ANDON) -->
-            <section class="panel-section">
-                <h3>Capas del Mapa</h3>
-                <div class="toggle-group">
-                    <label><input type="checkbox" id="chkDistritos" checked> Delimitación Distrital</label>
-                    <label><input type="checkbox" id="chkTopografia"> Topografía (Ráster MDE)</label>
-                    <label><input type="checkbox" id="chkInundacion"> Peligro Inundación</label>
-                    <label><input type="checkbox" id="chkHuaycos"> Peligro Mov. Masas</label>
-                </div>
-            </section>
+                <!-- SECCIÓN 2: CAPAS (TABLERO ANDON) -->
+                <section class="panel-section">
+                    <h3>Capas del Mapa</h3>
+                    <div class="toggle-group">
+                        <label><input type="checkbox" id="chkDistritos" checked> Delimitación Distrital</label>
+                        <label><input type="checkbox" id="chkTopografia"> Topografía (MDE)</label>
+                        <label><input type="checkbox" id="chkInundacion"> Peligro Inundación</label>
+                        <label><input type="checkbox" id="chkHuaycos"> Peligro Mov. Masas</label>
+                    </div>
+                </section>
+            </div>
 
             <div class="aesthetic-separator"></div>
 
             <!-- SECCIÓN 3: TABLA DE NIVELES DE PELIGRO EXTENDIDA -->
             <section class="panel-section table-section">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <h3 style="margin-bottom: 0;">Matriz de Peligros <span id="tableCounter" style="font-size: 0.75rem; color: #666; font-weight: normal;">(0 expuestas)</span></h3>
-                    <button id="btnExportExcel" class="btn-export" title="Exportar tabla completa a Excel (.xls)">📥 Exportar Excel</button>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <h3 style="margin-bottom: 0; font-size: 0.85rem;">Matriz <span id="tableCounter" style="font-size: 0.7rem; color: #666; font-weight: normal;">(0 expuestas)</span></h3>
+                    <button id="btnExportExcel" class="btn-export" title="Exportar tabla completa a Excel (.xls)">📥 Excel</button>
                 </div>
                 <div class="table-container">
                     <table id="riskTable">
@@ -124,15 +125,14 @@
                     </table>
                 </div>
             </section>
-
-            <footer class="panel-footer">
-                <button id="btnOpenReadme" class="btn-readme">📄 Información del Repositorio (README)</button>
-            </footer>
         </aside>
 
-        <!-- PANEL DERECHO: MAPA (4/5 del espacio) -->
+        <!-- PANEL DERECHO: MAPA -->
         <main class="map-container">
             <div id="map"></div>
+
+            <!-- BOTÓN FLOTANTE DISCRETO README (SÍMBOLO "i" DENTRO DE CÍRCULO) -->
+            <button id="btnOpenReadme" class="btn-readme-icon" title="Información del Repositorio (README)">i</button>
 
             <!-- VENTANA FLOTANTE GERENCIAL (MOVIBLE / DRAG & DROP) -->
             <div id="floatingSummary" class="floating-summary-panel">
