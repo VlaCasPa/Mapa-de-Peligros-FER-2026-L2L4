@@ -175,7 +175,15 @@ function updateRasterPosition() {
     if (rasterElevationLayer) {
         rasterElevationLayer.setBounds(calibratedBounds);
         if (rasterElevationLayer._image) {
-            rasterElevationLayer._image.style.transformOrigin = 'center center';
+            if (anchorMarker) {
+                let mapPoint = map.latLngToContainerPoint(anchorMarker.getLatLng());
+                let imagePoint = map.latLngToContainerPoint(rasterElevationLayer.getBounds().getCenter());
+                let pivotX = mapPoint.x - imagePoint.x + (rasterElevationLayer._image.clientWidth / 2);
+                let pivotY = mapPoint.y - imagePoint.y + (rasterElevationLayer._image.clientHeight / 2);
+                rasterElevationLayer._image.style.transformOrigin = `${pivotX}px ${pivotY}px`;
+            } else {
+                rasterElevationLayer._image.style.transformOrigin = 'center center';
+            }
             rasterElevationLayer._image.style.transform = `rotate(${RASTER_ROTATION}deg)`;
         }
     } else {
@@ -183,6 +191,11 @@ function updateRasterPosition() {
             opacity: 0.85,
             interactive: false
         });
+    }
+    
+    const lbl = document.getElementById('calibValues');
+    if (lbl) {
+        lbl.innerText = `Lat: ${SHIFT_LAT.toFixed(4)}° | Lng: ${SHIFT_LNG.toFixed(4)}°\nGiro: ${RASTER_ROTATION.toFixed(2)}°`;
     }
 }
 
@@ -297,6 +310,72 @@ fetch(baseUrl + 'ESTRUCTURAS%20L2L4.geojson')
         }).addTo(map);
         aplicarFiltrosFEN();
     });
+
+
+// --- WIDGET DE CALIBRACIÓN RÁSTER (AJUSTE FINO) ---
+const calibBox = document.createElement('div');
+calibBox.id = 'rasterCalibBox';
+calibBox.style.cssText = 'display:none; position:absolute; bottom:25px; left:25px; background:white; padding:8px 12px; border-radius:6px; box-shadow:0 2px 10px rgba(0,0,0,0.2); z-index:1000; font-size:11px; text-align:center; width: 175px;';
+calibBox.innerHTML = `
+    <div style="font-weight:bold; color:#0b3d59; margin-bottom:4px;">🎯 Calibración con Pin</div>
+    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:3px; margin-bottom:4px;">
+        <button id="btnRotCCW" style="padding:3px; cursor:pointer;" title="Giro Antihorario">↺</button>
+        <button id="btnCalibUp" style="padding:3px; cursor:pointer;" title="Mover Arriba">▲</button>
+        <button id="btnRotCW" style="padding:3px; cursor:pointer;" title="Giro Horario">↻</button>
+        <button id="btnCalibLeft" style="padding:3px; cursor:pointer;" title="Mover Izquierda">◀</button>
+        <button id="btnCalibDown" style="padding:3px; cursor:pointer;" title="Mover Abajo">▼</button>
+        <button id="btnCalibRight" style="padding:3px; cursor:pointer;" title="Mover Derecha">▶</button>
+    </div>
+    <button id="btnToggleAnchor" style="width:100%; padding:3px; background:#f0f4f8; border:1px solid #0b3d59; color:#0b3d59; font-weight:bold; cursor:pointer; border-radius:3px; margin-bottom:4px;">📍 Colocar Pin Anclaje</button>
+    <div id="calibValues" style="font-size:9.5px; color:#555; white-space: pre-line;">Lat: 0° | Lng: 0°\nGiro: 0°</div>
+`;
+document.querySelector('.map-container').appendChild(calibBox);
+
+const STEP_POS = 0.0002;
+const STEP_ROT = 0.25;
+
+document.getElementById('btnCalibLeft').addEventListener('click', () => { SHIFT_LNG -= STEP_POS; updateRasterPosition(); });
+document.getElementById('btnCalibRight').addEventListener('click', () => { SHIFT_LNG += STEP_POS; updateRasterPosition(); });
+document.getElementById('btnCalibUp').addEventListener('click', () => { SHIFT_LAT += STEP_POS; updateRasterPosition(); });
+document.getElementById('btnCalibDown').addEventListener('click', () => { SHIFT_LAT -= STEP_POS; updateRasterPosition(); });
+document.getElementById('btnRotCCW').addEventListener('click', () => { RASTER_ROTATION -= STEP_ROT; updateRasterPosition(); });
+document.getElementById('btnRotCW').addEventListener('click', () => { RASTER_ROTATION += STEP_ROT; updateRasterPosition(); });
+
+document.getElementById('btnToggleAnchor').addEventListener('click', () => {
+    isAnchorModeActive = !isAnchorModeActive;
+    const btn = document.getElementById('btnToggleAnchor');
+    if (isAnchorModeActive) {
+        btn.style.background = '#0b3d59';
+        btn.style.color = 'white';
+        btn.innerText = 'Click en mapa para Pin...';
+    } else {
+        btn.style.background = '#f0f4f8';
+        btn.style.color = '#0b3d59';
+        btn.innerText = '📍 Colocar Pin Anclaje';
+    }
+});
+
+map.on('click', function(e) {
+    if (!isAnchorModeActive) return;
+    if (anchorMarker) map.removeLayer(anchorMarker);
+    
+    const pinIcon = L.divIcon({
+        className: 'custom-pin-icon',
+        html: `<div style="background:#d32f2f; color:white; width:22px; height:22px; border-radius:50%; border:2px solid white; display:flex; align-items:center; justify-content:center; font-size:12px; box-shadow:0 2px 5px rgba(0,0,0,0.3);">📍</div>`,
+        iconSize: [22, 22],
+        iconAnchor: [11, 11]
+    });
+
+    anchorMarker = L.marker(e.latlng, { icon: pinIcon }).addTo(map);
+    anchorMarker.bindPopup(`<b>Punto de Anclaje</b><br>Lat: ${e.latlng.lat.toFixed(4)}, Lng: ${e.latlng.lng.toFixed(4)}`).openPopup();
+
+    isAnchorModeActive = false;
+    const btn = document.getElementById('btnToggleAnchor');
+    btn.style.background = '#f0f4f8';
+    btn.style.color = '#0b3d59';
+    btn.innerText = '📍 Pin Fijado (Cambiar)';
+    updateRasterPosition();
+});
 
 
 // --- CARGA DE TABLA CSV ---
@@ -425,7 +504,7 @@ function actualizarVentanaFlotante(elementosFiltrados, modoEscenario, hayFiltroA
     if (!floatingBody) return;
     floatingBody.innerHTML = '';
 
-    // Solo mostrar resumen si hay un filtro de nivel activo o ID escrito explícitamente
+    // Solo mostrar resumen si se ha seleccionado explícitamente un Nivel de Riesgo o ID
     if (floatingPanel && hayFiltroActivo) {
         floatingPanel.style.display = 'flex';
     } else {
@@ -494,7 +573,7 @@ function sincronizarCapasMapa(modoEscenario) {
     }
 }
 
-// --- MOTOR DE FILTRADO FEN Y ATENUACIÓN DE COLUMNAS ---
+// --- MOTOR DE FILTRADO FEN ---
 function aplicarFiltrosFEN() {
     let inputIdEl = document.getElementById('filterId');
     let selectTipoEl = document.getElementById('filterTipoPeligro');
@@ -514,12 +593,11 @@ function aplicarFiltrosFEN() {
     let rawNivelVal = selectNivelEl ? selectNivelEl.value : '';
     let normNivelBuscado = obtenerNivelEstandar(rawNivelVal);
 
-    // Solo hay filtro activo para mostrar resumen si se escribió ID o se eligió Nivel de Riesgo
+    // La ventana flotante solo se activa si hay ID escrito o Nivel de Riesgo seleccionado
     let hayFiltroActivo = (textId !== '' || normNivelBuscado !== '');
 
     sincronizarCapasMapa(modoEscenario);
 
-    // Atenuar encabezados de tabla según el tipo de peligro seleccionado para consistencia
     let thInun = document.getElementById('thInun');
     let thHuay = document.getElementById('thHuay');
     if (modoEscenario === 'INUNDACION') {
@@ -561,175 +639,4 @@ function aplicarFiltrosFEN() {
             } else if (modoEscenario === 'HUAYCOS') {
                 matchPeligroNivel = (nivelFilaHuay === normNivelBuscado);
             } else {
-                matchPeligroNivel = (nivelFilaInun === normNivelBuscado || nivelFilaHuay === normNivelBuscado);
-            }
-        }
-
-        if (matchId && matchPeligroNivel) {
-            tr.classList.remove('filtered-out');
-            idsVisibles.add(sId);
-            totalVisibles++;
-
-            let nivelAsociado = (modoEscenario === 'HUAYCOS') ? nivelFilaHuay : nivelFilaInun;
-            mapaNivelesEstructuras[sId] = nivelAsociado;
-
-            listaParaFlotante.push({
-                id: sId,
-                inundacion: nivelFilaInun || textoInunOriginal.toUpperCase(),
-                huaycos: nivelFilaHuay || textoHuayOriginal.toUpperCase()
-            });
-
-            // Atenuar celdas de la columna no seleccionada
-            if (modoEscenario === 'INUNDACION') {
-                if (cellInun) cellInun.classList.remove('col-dimmed');
-                if (cellHuay) cellHuay.classList.add('col-dimmed');
-            } else if (modoEscenario === 'HUAYCOS') {
-                if (cellInun) cellInun.classList.add('col-dimmed');
-                if (cellHuay) cellHuay.classList.remove('col-dimmed');
-            } else {
-                if (cellInun) cellInun.classList.remove('col-dimmed');
-                if (cellHuay) cellHuay.classList.remove('col-dimmed');
-            }
-        } else {
-            tr.classList.add('filtered-out');
-            if (cellInun) cellInun.classList.remove('col-dimmed');
-            if (cellHuay) cellHuay.classList.remove('col-dimmed');
-        }
-    });
-
-    let badge = document.getElementById('counterBadge');
-    let tCounter = document.getElementById('tableCounter');
-    if (badge) badge.innerText = `${totalVisibles} / ${totalGeneral}`;
-    if (tCounter) tCounter.innerText = `(${totalVisibles} expuestas)`;
-
-    actualizarVentanaFlotante(listaParaFlotante, modoEscenario, hayFiltroActivo);
-
-    if (layerEstructuras) {
-        layerEstructuras.eachLayer(layer => {
-            let featId = String(layer.feature.properties.ID || layer.feature.properties.id || '').toUpperCase().trim();
-            let elDiv = layer.getElement();
-            if (elDiv) {
-                let labelEl = elDiv.querySelector('.structure-label');
-                if (idsVisibles.has(featId)) {
-                    elDiv.style.opacity = '1';
-                    if (labelEl) {
-                        if (normNivelBuscado !== '') {
-                            let nivelActual = mapaNivelesEstructuras[featId];
-                            labelEl.style.backgroundColor = getColorPeligro(nivelActual);
-                            labelEl.style.color = getTextColor(nivelActual);
-                        } else {
-                            labelEl.style.backgroundColor = '#ffffff';
-                            labelEl.style.color = '#000000';
-                        }
-                        labelEl.style.fontWeight = 'bold';
-                    }
-                    boundsGroup.push(layer.getLatLng());
-                } else {
-                    elDiv.style.opacity = '0.2';
-                    if (labelEl) {
-                        labelEl.style.backgroundColor = '#ffffff';
-                        labelEl.style.color = '#000000';
-                        labelEl.style.fontWeight = 'normal';
-                    }
-                }
-            }
-        });
-
-        if (hayFiltroActivo) {
-            if (boundsGroup.length > 0) {
-                let groupBounds = L.latLngBounds(boundsGroup);
-                map.fitBounds(groupBounds, { padding: [50, 50], maxZoom: 15, animate: true });
-            } else {
-                map.setView([-12.0464, -77.0428], 11, { animate: true });
-            }
-        }
-    }
-}
-
-document.getElementById('filterId').addEventListener('input', aplicarFiltrosFEN);
-document.getElementById('filterTipoPeligro').addEventListener('change', aplicarFiltrosFEN);
-document.getElementById('filterNivelRiesgo').addEventListener('change', aplicarFiltrosFEN);
-
-// --- EXPORTAR A EXCEL ---
-document.getElementById('btnExportExcel').addEventListener('click', function() {
-    let htmlContent = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"></head><body><table><thead><tr><th>ID</th><th>Inundación</th><th>Movimientos en Masa</th></tr></thead><tbody>`;
-    tableDataMaster.forEach(row => {
-        let { structId, inundacionVal, masasVal } = extraerColumnasFila(row);
-        if(structId) {
-            htmlContent += `<tr><td>${structId}</td><td>${inundacionVal}</td><td>${masasVal}</td></tr>`;
-        }
-    });
-    htmlContent += `</tbody></table></body></html>`;
-
-    let blob = new Blob([htmlContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-    let link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "Matriz_Riesgos_FEN_L2L4.xls";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-});
-
-// --- CHECKBOXES DE CAPAS ---
-document.getElementById('chkDistritos').addEventListener('change', function() {
-    if(this.checked) map.addLayer(layerDistritos);
-    else map.removeLayer(layerDistritos);
-});
-
-document.getElementById('chkTopografia').addEventListener('change', function() {
-    if(this.checked) {
-        map.removeLayer(googleGrisLayer);
-        if (rasterElevationLayer) {
-            rasterElevationLayer.addTo(map);
-            rasterElevationLayer.bringToBack();
-            if (rasterElevationLayer._image) {
-                rasterElevationLayer._image.style.transform = `rotate(${RASTER_ROTATION}deg)`;
-            }
-        }
-    } else {
-        if (rasterElevationLayer && map.hasLayer(rasterElevationLayer)) {
-            map.removeLayer(rasterElevationLayer);
-        }
-        googleGrisLayer.addTo(map);
-        googleGrisLayer.bringToBack();
-    }
-});
-
-document.getElementById('chkInundacion').addEventListener('change', function() {
-    if(this.checked) sincronizarCapasMapa('INUNDACION');
-    else { if(layerInundacion && map.hasLayer(layerInundacion)) map.removeLayer(layerInundacion); clearLegend(); }
-});
-
-document.getElementById('chkHuaycos').addEventListener('change', function() {
-    if(this.checked) sincronizarCapasMapa('HUAYCOS');
-    else { if(layerHuaycos && map.hasLayer(layerHuaycos)) map.removeLayer(layerHuaycos); clearLegend(); }
-});
-
-function updateLegend(tipo) {
-    document.getElementById('legendTitle').innerText = `Niveles de ${tipo}`;
-    const legend = document.getElementById('legendContent');
-    legend.innerHTML = `
-        <div class="legend-item"><span class="legend-color" style="background:#d32f2f"></span>Muy Alto</div>
-        <div class="legend-item"><span class="legend-color" style="background:#f57c00"></span>Alto</div>
-        <div class="legend-item"><span class="legend-color" style="background:#fbc02d"></span>Medio</div>
-        <div class="legend-item"><span class="legend-color" style="background:#388e3c"></span>Bajo</div>
-    `;
-}
-
-function clearLegend() {
-    document.getElementById('legendTitle').innerText = 'Leyenda';
-    document.getElementById('legendContent').innerHTML = 'Seleccione una capa de riesgo';
-}
-
-// --- MODAL README ---
-const modal = document.getElementById('readmeModal');
-const btnOpen = document.getElementById('btnOpenReadme');
-const btnClose = document.getElementById('btnCloseReadme');
-const btnCloseBottom = document.getElementById('btnCloseModalBottom');
-
-if(modal) {
-    if(btnOpen) btnOpen.addEventListener('click', () => { modal.style.display = 'flex'; });
-    if(btnClose) btnClose.addEventListener('click', () => { modal.style.display = 'none'; });
-    if(btnCloseBottom) btnCloseBottom.addEventListener('click', () => { modal.style.display = 'none'; });
-    modal.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
-}
+                matchPeligroNivel = (nivelFilaInun === normNivelBuscado || nivelFilaHuay ===
