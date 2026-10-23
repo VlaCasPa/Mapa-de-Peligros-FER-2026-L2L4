@@ -63,9 +63,9 @@ onAuthStateChanged(auth, async (user) => {
         }
 
         const userBadge = document.getElementById('onlineUsers');
-        if (userBadge) {
-            userBadge.innerHTML = `🟢 ${user.email || 'Autorizado'}`;
-        }
+        if (userBadge) userBadge.innerHTML = `🟢 ${user.email || 'Autorizado'}`;
+        const userBadgeMob = document.getElementById('onlineUsersMobile');
+        if (userBadgeMob) userBadgeMob.innerHTML = `🟢 ${user.email || 'Autorizado'}`;
     } else {
         if (loginModal) loginModal.style.display = 'flex';
         if (disclaimerModal) disclaimerModal.style.display = 'none';
@@ -263,6 +263,7 @@ fetch(baseUrl + 'DISTRITOS%20DE%20LIMA%20Y%20CALLAO.geojson')
             }
         });
         if(document.getElementById('chkDistritos').checked) layerDistritos.addTo(map);
+        if(document.getElementById('chkDistritosMob') && document.getElementById('chkDistritosMob').checked) layerDistritos.addTo(map);
 
         if (!rawOriginBounds) {
             const b = layerDistritos.getBounds();
@@ -336,8 +337,13 @@ function extraerColumnasFila(row) {
 }
 
 function renderTable(data) {
+    // Renderizar para escritorio
     const tbody = document.getElementById('tableBody');
-    tbody.innerHTML = '';
+    // Renderizar para móvil
+    const tbodyMob = document.getElementById('tableBodyMob');
+    
+    if (tbody) tbody.innerHTML = '';
+    if (tbodyMob) tbodyMob.innerHTML = '';
     
     data.forEach(row => {
         let { structId, inundacionVal, masasVal } = extraerColumnasFila(row);
@@ -348,38 +354,38 @@ function renderTable(data) {
         let textInun = getTextColor(inundacionVal);
         let textMasas = getTextColor(masasVal);
 
-        let tr = document.createElement('tr');
-        tr.dataset.structId = structId.toUpperCase();
-        tr.dataset.inundacion = obtenerNivelEstandar(inundacionVal);
-        tr.dataset.huaycos = obtenerNivelEstandar(masasVal);
-
-        tr.innerHTML = `
+        let rowHtml = `
             <td class="td-id"><b>${structId}</b></td>
             <td class="td-inundacion" style="background-color: ${colorInun}; color: ${textInun}; font-weight: 600; text-align: center;">${inundacionVal}</td>
             <td class="td-huaycos" style="background-color: ${colorMasas}; color: ${textMasas}; font-weight: 600; text-align: center;">${masasVal}</td>
         `;
-        
-        tr.addEventListener('click', () => {
-            document.querySelectorAll('#tableBody tr').forEach(el => el.classList.remove('selected-row'));
-            tr.classList.add('selected-row');
-            if(layerEstructuras) {
-                layerEstructuras.eachLayer(layer => {
-                    let featId = String(layer.feature.properties.ID || layer.feature.properties.id || '').toUpperCase().trim();
-                    if(featId === structId.toUpperCase()) {
-                        map.setView(layer.getLatLng(), 15);
-                        layer.openPopup();
-                    }
-                });
-            }
-        });
-        tbody.appendChild(tr);
+
+        if (tbody) {
+            let tr = document.createElement('tr');
+            tr.dataset.structId = structId.toUpperCase();
+            tr.dataset.inundacion = obtenerNivelEstandar(inundacionVal);
+            tr.dataset.huaycos = obtenerNivelEstandar(masasVal);
+            tr.innerHTML = rowHtml;
+            tr.addEventListener('click', () => { seleccionarFilaEnTabla(structId); });
+            tbody.appendChild(tr);
+        }
+
+        if (tbodyMob) {
+            let trMob = document.createElement('tr');
+            trMob.dataset.structId = structId.toUpperCase();
+            trMob.dataset.inundacion = obtenerNivelEstandar(inundacionVal);
+            trMob.dataset.huaycos = obtenerNivelEstandar(masasVal);
+            trMob.innerHTML = rowHtml;
+            trMob.addEventListener('click', () => { seleccionarFilaEnTabla(structId); });
+            tbodyMob.appendChild(trMob);
+        }
     });
 
     aplicarFiltrosFEN();
 }
 
 function seleccionarFilaEnTabla(structId) {
-    const rows = document.querySelectorAll('#tableBody tr');
+    const rows = document.querySelectorAll('#tableBody tr, #tableBodyMob tr');
     let encontrada = null;
     rows.forEach(tr => {
         tr.classList.remove('selected-row');
@@ -481,33 +487,47 @@ function actualizarVentanaFlotante(elementosFiltrados, modoEscenario, hayFiltroA
 function sincronizarCapasMapa(modoEscenario) {
     let chkInun = document.getElementById('chkInundacion');
     let chkHuay = document.getElementById('chkHuaycos');
+    let chkInunMob = document.getElementById('chkInundacionMob');
+    let chkHuayMob = document.getElementById('chkHuaycosMob');
 
     if (modoEscenario === 'INUNDACION') {
         if (chkInun) chkInun.checked = true;
         if (chkHuay) chkHuay.checked = false;
+        if (chkInunMob) chkInunMob.checked = true;
+        if (chkHuayMob) chkHuayMob.checked = false;
+
         if (layerHuaycos && map.hasLayer(layerHuaycos)) map.removeLayer(layerHuaycos);
         if (layerInundacion && !map.hasLayer(layerInundacion)) map.addLayer(layerInundacion);
         updateLegend('Inundación');
     } else if (modoEscenario === 'HUAYCOS') {
         if (chkHuay) chkHuay.checked = true;
         if (chkInun) chkInun.checked = false;
+        if (chkHuayMob) chkHuayMob.checked = true;
+        if (chkInunMob) chkInunMob.checked = false;
+
         if (layerInundacion && map.hasLayer(layerInundacion)) map.removeLayer(layerInundacion);
         if (layerHuaycos && !map.hasLayer(layerHuaycos)) map.addLayer(layerHuaycos);
         updateLegend('Movimientos en Masa');
     } else {
         if (chkInun) chkInun.checked = false;
         if (chkHuay) chkHuay.checked = false;
+        if (chkInunMob) chkInunMob.checked = false;
+        if (chkHuayMob) chkHuayMob.checked = false;
+
         if (layerInundacion && map.hasLayer(layerInundacion)) map.removeLayer(layerInundacion);
         if (layerHuaycos && map.hasLayer(layerHuaycos)) map.removeLayer(layerHuaycos);
         clearLegend();
     }
 }
 
-// --- MOTOR DE FILTRADO FEN ---
+// --- MOTOR DE FILTRADO FEN UNIFICADO (PC Y MÓVIL) ---
 function aplicarFiltrosFEN() {
-    let inputIdEl = document.getElementById('filterId');
-    let selectTipoEl = document.getElementById('filterTipoPeligro');
-    let selectNivelEl = document.getElementById('filterNivelRiesgo');
+    // Detectar si estamos interactuando en móvil o escritorio
+    const isMobile = window.innerWidth <= 900;
+    
+    let inputIdEl = document.getElementById(isMobile ? 'filterIdMob' : 'filterId') || document.getElementById('filterId');
+    let selectTipoEl = document.getElementById(isMobile ? 'filterTipoPeligroMob' : 'filterTipoPeligro') || document.getElementById('filterTipoPeligro');
+    let selectNivelEl = document.getElementById(isMobile ? 'filterNivelRiesgoMob' : 'filterNivelRiesgo') || document.getElementById('filterNivelRiesgo');
 
     let textId = inputIdEl ? normalizarTexto(inputIdEl.value) : '';
     let rawTipoVal = selectTipoEl ? normalizarTexto(selectTipoEl.value) : '';
@@ -526,33 +546,19 @@ function aplicarFiltrosFEN() {
 
     sincronizarCapasMapa(modoEscenario);
 
-    let thInun = document.getElementById('thInun');
-    let thHuay = document.getElementById('thHuay');
-    if (modoEscenario === 'INUNDACION') {
-        if (thInun) thInun.classList.remove('col-dimmed');
-        if (thHuay) thHuay.classList.add('col-dimmed');
-    } else if (modoEscenario === 'HUAYCOS') {
-        if (thInun) thInun.classList.add('col-dimmed');
-        if (thHuay) thHuay.classList.remove('col-dimmed');
-    } else {
-        if (thInun) thInun.classList.remove('col-dimmed');
-        if (thHuay) thHuay.classList.remove('col-dimmed');
-    }
-
-    let rows = document.querySelectorAll('#tableBody tr');
+    let rows = document.querySelectorAll('#tableBody tr, #tableBodyMob tr');
     let idsVisibles = new Set();
     let totalVisibles = 0;
-    let totalGeneral = rows.length;
+    let totalGeneral = document.querySelectorAll('#tableBody tr').length;
     let boundsGroup = [];
     let listaParaFlotante = [];
     let mapaNivelesEstructuras = {};
 
     rows.forEach(tr => {
-        let cellId = tr.querySelector('.td-id');
         let cellInun = tr.querySelector('.td-inundacion');
         let cellHuay = tr.querySelector('.td-huaycos');
 
-        let sId = (tr.dataset.structId || (cellId ? cellId.textContent : '')).toUpperCase().trim();
+        let sId = (tr.dataset.structId || '').toUpperCase().trim();
         let textoInunOriginal = cellInun ? cellInun.textContent.trim() : '';
         let textoHuayOriginal = cellHuay ? cellHuay.textContent.trim() : '';
 
@@ -575,7 +581,7 @@ function aplicarFiltrosFEN() {
         if (matchId && matchPeligroNivel) {
             tr.classList.remove('filtered-out');
             idsVisibles.add(sId);
-            totalVisibles++;
+            if (!tr.id.includes('Mob')) totalVisibles++; // Contar solo una vez por estructura
 
             let nivelAsociado = (modoEscenario === 'HUAYCOS') ? nivelFilaHuay : nivelFilaInun;
             mapaNivelesEstructuras[sId] = nivelAsociado;
@@ -585,28 +591,17 @@ function aplicarFiltrosFEN() {
                 inundacion: nivelFilaInun || textoInunOriginal.toUpperCase(),
                 huaycos: nivelFilaHuay || textoHuayOriginal.toUpperCase()
             });
-
-            if (modoEscenario === 'INUNDACION') {
-                if (cellInun) cellInun.classList.remove('col-dimmed');
-                if (cellHuay) cellHuay.classList.add('col-dimmed');
-            } else if (modoEscenario === 'HUAYCOS') {
-                if (cellInun) cellInun.classList.add('col-dimmed');
-                if (cellHuay) cellHuay.classList.remove('col-dimmed');
-            } else {
-                if (cellInun) cellInun.classList.remove('col-dimmed');
-                if (cellHuay) cellHuay.classList.remove('col-dimmed');
-            }
         } else {
             tr.classList.add('filtered-out');
-            if (cellInun) cellInun.classList.remove('col-dimmed');
-            if (cellHuay) cellHuay.classList.remove('col-dimmed');
         }
     });
 
     let badge = document.getElementById('counterBadge');
     let tCounter = document.getElementById('tableCounter');
+    let tCounterMob = document.getElementById('tableCounterMob');
     if (badge) badge.innerText = `${totalVisibles} / ${totalGeneral}`;
     if (tCounter) tCounter.innerText = `(${totalVisibles} expuestas)`;
+    if (tCounterMob) tCounterMob.innerText = `(${totalVisibles} expuestas)`;
 
     actualizarVentanaFlotante(listaParaFlotante, modoEscenario, hayFiltroActivo);
 
@@ -652,12 +647,22 @@ function aplicarFiltrosFEN() {
     }
 }
 
-document.getElementById('filterId').addEventListener('input', aplicarFiltrosFEN);
-document.getElementById('filterTipoPeligro').addEventListener('change', aplicarFiltrosFEN);
-document.getElementById('filterNivelRiesgo').addEventListener('change', aplicarFiltrosFEN);
+// Eventos sincronizados para PC y Móvil
+['filterId', 'filterIdMob'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', aplicarFiltrosFEN);
+});
+['filterTipoPeligro', 'filterTipoPeligroMob'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', aplicarFiltrosFEN);
+});
+['filterNivelRiesgo', 'filterNivelRiesgoMob'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', aplicarFiltrosFEN);
+});
 
 // --- EXPORTAR A EXCEL ---
-document.getElementById('btnExportExcel').addEventListener('click', function() {
+function exportarExcel() {
     let htmlContent = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"></head><body><table><thead><tr><th>ID</th><th>Inundación</th><th>Movimientos en Masa</th></tr></thead><tbody>`;
     tableDataMaster.forEach(row => {
         let { structId, inundacionVal, masasVal } = extraerColumnasFila(row);
@@ -674,29 +679,56 @@ document.getElementById('btnExportExcel').addEventListener('click', function() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-});
+}
 
-// --- CHECKBOXES DE CAPAS ---
-document.getElementById('chkDistritos').addEventListener('change', function() {
-    if(this.checked) map.addLayer(layerDistritos);
+const btnExPC = document.getElementById('btnExportExcel');
+const btnExMob = document.getElementById('btnExportExcelMob');
+if (btnExPC) btnExPC.addEventListener('click', exportarExcel);
+if (btnExMob) btnExMob.addEventListener('click', exportarExcel);
+
+// --- CHECKBOXES DE CAPAS (PC Y MÓVIL) ---
+function manejarCapasDistrito(e) {
+    const checked = e.target.checked;
+    document.getElementById('chkDistritos').checked = checked;
+    document.getElementById('chkDistritosMob').checked = checked;
+    if(checked) map.addLayer(layerDistritos);
     else map.removeLayer(layerDistritos);
-});
+}
+document.getElementById('chkDistritos').addEventListener('change', manejarCapasDistrito);
+document.getElementById('chkDistritosMob').addEventListener('change', manejarCapasDistrito);
 
-document.getElementById('chkTopografia').addEventListener('change', function() {
-    if(this.checked) {
+function manejarTopografia(e) {
+    const checked = e.target.checked;
+    document.getElementById('chkTopografia').checked = checked;
+    document.getElementById('chkTopografiaMob').checked = checked;
+    if(checked) {
         map.removeLayer(googleGrisLayer);
     } else {
         googleGrisLayer.addTo(map);
         googleGrisLayer.bringToBack();
     }
-});
+}
+document.getElementById('chkTopografia').addEventListener('change', manejarTopografia);
+document.getElementById('chkTopografiaMob').addEventListener('change', manejarTopografia);
 
 document.getElementById('chkInundacion').addEventListener('change', function() {
+    document.getElementById('chkInundacionMob').checked = this.checked;
+    if(this.checked) sincronizarCapasMapa('INUNDACION');
+    else { if(layerInundacion && map.hasLayer(layerInundacion)) map.removeLayer(layerInundacion); clearLegend(); }
+});
+document.getElementById('chkInundacionMob').addEventListener('change', function() {
+    document.getElementById('chkInundacion').checked = this.checked;
     if(this.checked) sincronizarCapasMapa('INUNDACION');
     else { if(layerInundacion && map.hasLayer(layerInundacion)) map.removeLayer(layerInundacion); clearLegend(); }
 });
 
 document.getElementById('chkHuaycos').addEventListener('change', function() {
+    document.getElementById('chkHuaycosMob').checked = this.checked;
+    if(this.checked) sincronizarCapasMapa('HUAYCOS');
+    else { if(layerHuaycos && map.hasLayer(layerHuaycos)) map.removeLayer(layerHuaycos); clearLegend(); }
+});
+document.getElementById('chkHuaycosMob').addEventListener('change', function() {
+    document.getElementById('chkHuaycos').checked = this.checked;
     if(this.checked) sincronizarCapasMapa('HUAYCOS');
     else { if(layerHuaycos && map.hasLayer(layerHuaycos)) map.removeLayer(layerHuaycos); clearLegend(); }
 });
@@ -717,14 +749,16 @@ function clearLegend() {
     document.getElementById('legendContent').innerHTML = 'Seleccione una capa de riesgo';
 }
 
-// --- MODAL README (SÍMBOLO "i") ---
+// --- MODAL README (PC Y MÓVIL) ---
 const modal = document.getElementById('readmeModal');
 const btnOpen = document.getElementById('btnOpenReadme');
+const btnOpenMob = document.getElementById('btnOpenReadmeMobile');
 const btnClose = document.getElementById('btnCloseReadme');
 const btnCloseBottom = document.getElementById('btnCloseModalBottom');
 
 if(modal) {
     if(btnOpen) btnOpen.addEventListener('click', () => { modal.style.display = 'flex'; });
+    if(btnOpenMob) btnOpenMob.addEventListener('click', () => { modal.style.display = 'flex'; });
     if(btnClose) btnClose.addEventListener('click', () => { modal.style.display = 'none'; });
     if(btnCloseBottom) btnCloseBottom.addEventListener('click', () => { modal.style.display = 'none'; });
     modal.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
