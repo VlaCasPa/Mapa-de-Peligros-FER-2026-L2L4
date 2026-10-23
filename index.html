@@ -49,9 +49,20 @@
         </div>
     </div>
 
+    <!-- MÓVIL BLOQUE 1: TÍTULO Y BOTÓN "i" INTEGRADO -->
+    <header class="mobile-header-top">
+        <div class="header-titles">
+            <h2>Gestión de Peligros FEN - L2 & L4</h2>
+            <div class="telemetry-inline">
+                <span id="onlineUsersMob">🟢 1 en línea</span>
+            </div>
+        </div>
+        <button id="btnOpenReadmeMob" class="btn-readme-inline" title="Información del Repositorio (README)">i</button>
+    </header>
+
     <div class="dashboard-container">
         
-        <!-- PANEL IZQUIERDO: CONTROLES, CAPAS Y TABLA -->
+        <!-- PANEL IZQUIERDO (ESCRITORIO) -->
         <aside class="side-panel">
             <header class="panel-header">
                 <h2>Gestión de Peligros FEN</h2>
@@ -125,7 +136,48 @@
             </footer>
         </aside>
 
-        <!-- PANEL DERECHO: MAPA -->
+        <!-- MÓVIL BLOQUE 2: FILTROS Y CAPAS (DOS COLUMNAS) -->
+        <aside class="mobile-controls-panel">
+            <div class="mobile-grid-controls">
+                <section class="panel-section">
+                    <h3>Filtros <span id="counterBadgeMob" style="float: right; font-size: 0.65rem; background: #0b3d59; color: white; padding: 1px 4px; border-radius: 6px;">0 / 0</span></h3>
+                    <div class="filter-group">
+                        <label>ID Estructura:</label>
+                        <input type="text" id="filterIdMob" placeholder="Ej. E26..." class="search-input">
+                    </div>
+                    <div class="filter-group">
+                        <label>Tipo Peligro:</label>
+                        <select id="filterTipoPeligroMob" class="search-input">
+                            <option value="">-- Todos --</option>
+                            <option value="inundacion">Inundación</option>
+                            <option value="huaycos">Mov. Masas</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Nivel Riesgo:</label>
+                        <select id="filterNivelRiesgoMob" class="search-input">
+                            <option value="">-- Todos --</option>
+                            <option value="MUY ALTO">🔴 Muy Alto</option>
+                            <option value="ALTO">🟠 Alto</option>
+                            <option value="MEDIO">🟡 Medio</option>
+                            <option value="BAJO">🟢 Bajo</option>
+                        </select>
+                    </div>
+                </section>
+
+                <section class="panel-section">
+                    <h3>Capas Mapa</h3>
+                    <div class="toggle-group">
+                        <label><input type="checkbox" id="chkDistritosMob" checked> Delim. Distrital</label>
+                        <label><input type="checkbox" id="chkTopografiaMob"> Topografía (MDE)</label>
+                        <label><input type="checkbox" id="chkInundacionMob"> Inundación</label>
+                        <label><input type="checkbox" id="chkHuaycosMob"> Mov. Masas</label>
+                    </div>
+                </section>
+            </div>
+        </aside>
+
+        <!-- PANEL DERECHO / MÓVIL BLOQUE 3: MAPA -->
         <main class="map-container">
             <div id="map"></div>
 
@@ -149,6 +201,27 @@
                 <div id="legendContent" class="legend-body-collapsible">Seleccione una capa de riesgo</div>
             </div>
         </main>
+
+        <!-- MÓVIL BLOQUE 4: MATRIZ TABULAR INFERIOR -->
+        <section class="table-section-mobile">
+            <div class="table-header-bar">
+                <h3 style="margin: 0; font-size: 0.8rem;">Matriz <span id="tableCounterMob" style="font-size: 0.65rem; color: #666; font-weight: normal;">(0 expuestas)</span></h3>
+                <button id="btnExportExcelMob" class="btn-export">📥 Excel</button>
+            </div>
+            <div class="table-container">
+                <table id="riskTableMob">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th id="thInunMob">Inundación</th>
+                            <th id="thHuayMob">Mov. Masas</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBodyMob"></tbody>
+                </table>
+            </div>
+        </section>
+
     </div>
 
     <!-- VENTANA EMERGENTE (MODAL) PARA EL README TÉCNICO -->
