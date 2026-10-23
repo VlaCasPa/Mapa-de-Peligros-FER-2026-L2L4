@@ -392,6 +392,20 @@ function seleccionarFilaEnTabla(structId) {
 }
 
 
+// --- LEYENDA COLAPSIBLE ---
+window.toggleLeyenda = function() {
+    const body = document.getElementById('legendContent');
+    const icon = document.getElementById('legendToggleIcon');
+    if (body.style.display === 'none') {
+        body.style.display = 'block';
+        icon.innerText = '▼';
+    } else {
+        body.style.display = 'none';
+        icon.innerText = '▲';
+    }
+};
+
+
 // --- VENTANA FLOTANTE ---
 const floatingPanel = document.getElementById('floatingSummary');
 const floatingHeader = document.getElementById('floatingHeader');
@@ -424,12 +438,12 @@ function actualizarVentanaFlotante(elementosFiltrados, modoEscenario, hayFiltroA
     if (floatingPanel && hayFiltroActivo) floatingPanel.style.display = 'flex';
 
     if (!hayFiltroActivo) {
-        floatingBody.innerHTML = `<p style="font-size: 11px; color: #666; text-align: center; padding: 10px;">Sin filtros activos</p>`;
+        floatingBody.innerHTML = `<p style="font-size: 11px; color: #666; text-align: center; padding: 6px;">Sin filtros activos</p>`;
         return;
     }
 
     if (elementosFiltrados.length === 0) {
-        floatingBody.innerHTML = `<p style="font-size: 11px; color: #666; text-align: center; padding: 10px;">Sin estructuras coincidentes</p>`;
+        floatingBody.innerHTML = `<p style="font-size: 11px; color: #666; text-align: center; padding: 6px;">Sin estructuras coincidentes</p>`;
         return;
     }
 
@@ -445,7 +459,7 @@ function actualizarVentanaFlotante(elementosFiltrados, modoEscenario, hayFiltroA
         div.innerHTML = `
             <div>
                 <span class="floating-item-id">${item.id}</span>
-                <div style="font-size: 9.5px; color: #555;">${tipoLabel}</div>
+                <div style="font-size: 9px; color: #555;">${tipoLabel}</div>
             </div>
             <span class="floating-item-badge" style="background-color: ${colorNivel}; color: ${textoColorNivel};">${nivelTexto || 'N/D'}</span>
         `;
@@ -688,9 +702,9 @@ document.getElementById('chkHuaycos').addEventListener('change', function() {
 });
 
 function updateLegend(tipo) {
+    document.getElementById('legendTitle').innerText = `Niveles de ${tipo}`;
     const legend = document.getElementById('legendContent');
     legend.innerHTML = `
-        <b>Niveles de ${tipo}</b>
         <div class="legend-item"><span class="legend-color" style="background:#d32f2f"></span>Muy Alto</div>
         <div class="legend-item"><span class="legend-color" style="background:#f57c00"></span>Alto</div>
         <div class="legend-item"><span class="legend-color" style="background:#fbc02d"></span>Medio</div>
@@ -699,6 +713,7 @@ function updateLegend(tipo) {
 }
 
 function clearLegend() {
+    document.getElementById('legendTitle').innerText = 'Leyenda';
     document.getElementById('legendContent').innerHTML = 'Seleccione una capa de riesgo';
 }
 
