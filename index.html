@@ -49,23 +49,51 @@
         </div>
     </div>
 
+    <!-- 3. CONTENEDOR PRINCIPAL (MÓVIL: ORDEN REESTRUCTURADO) -->
     <div class="dashboard-container">
         
-        <!-- PANEL IZQUIERDO / SUPERIOR MÓVIL -->
-        <aside class="side-panel">
-            <header class="panel-header">
-                <h2>Gestión de Peligros FEN</h2>
-                <p>Línea 2 y 4 del Metro de Lima</p>
-                <div class="telemetry">
+        <!-- SECCIÓN 1: TÍTULO Y MARQUESINA SUPERIOR CON BOTÓN "i" INTEGRADO -->
+        <header class="panel-header mobile-header-top">
+            <div class="header-titles">
+                <h2>Gestión de Peligros FEN - L2 & L4</h2>
+                <div class="telemetry-inline">
                     <span id="onlineUsers">🟢 1 en línea</span>
                 </div>
-            </header>
+            </div>
+            <button id="btnOpenReadme" class="btn-readme-inline" title="Información del Repositorio (README)">i</button>
+        </header>
 
-            <!-- CONTENEDOR FLEX PARA ORGANIZAR FILTROS Y CAPAS EN MÓVIL (DOS COLUMNAS) -->
-            <div class="mobile-controls-grid">
-                <!-- SECCIÓN 1: FILTROS ESTRATÉGICOS FEN -->
+        <!-- SECCIÓN 2: MAPA PRINCIPAL -->
+        <main class="map-container">
+            <div id="map"></div>
+
+            <!-- VENTANA FLOTANTE GERENCIAL (MOVIBLE / DRAG & DROP) -->
+            <div id="floatingSummary" class="floating-summary-panel">
+                <div id="floatingHeader" class="floating-header">
+                    <span>📋 Resumen Ejecutivo FEN</span>
+                    <button id="btnCloseFloating" class="floating-close">&times;</button>
+                </div>
+                <div class="floating-body" id="floatingBody">
+                    <p style="font-size: 11px; color: #666; text-align: center; padding: 6px;">Sin filtros activos</p>
+                </div>
+            </div>
+
+            <!-- LEYENDA DINÁMICA COLAPSIBLE (ESQUINA INFERIOR DERECHA) -->
+            <div id="mapLegend" class="map-legend">
+                <div class="legend-header-bar" onclick="toggleLeyenda()">
+                    <h4 id="legendTitle">Leyenda</h4>
+                    <span id="legendToggleIcon">▼</span>
+                </div>
+                <div id="legendContent" class="legend-body-collapsible">Seleccione una capa de riesgo</div>
+            </div>
+        </main>
+
+        <!-- SECCIÓN 3: FILTROS Y CAPAS -->
+        <aside class="side-panel mobile-controls-panel">
+            <div class="mobile-grid-controls">
+                <!-- Filtros FEN -->
                 <section class="panel-section">
-                    <h3>Filtros FEN <span id="counterBadge" style="float: right; font-size: 0.70rem; background: #0b3d59; color: white; padding: 2px 5px; border-radius: 8px;">0 / 0</span></h3>
+                    <h3>Filtros FEN <span id="counterBadge" style="float: right; font-size: 0.68rem; background: #0b3d59; color: white; padding: 1px 5px; border-radius: 8px;">0 / 0</span></h3>
                     <div class="filter-group">
                         <label>ID Estructura:</label>
                         <input type="text" id="filterId" placeholder="Ej. E26, PV01..." class="search-input">
@@ -90,7 +118,7 @@
                     </div>
                 </section>
 
-                <!-- SECCIÓN 2: CAPAS (TABLERO ANDON) -->
+                <!-- Capas del Mapa -->
                 <section class="panel-section">
                     <h3>Capas del Mapa</h3>
                     <div class="toggle-group">
@@ -101,56 +129,30 @@
                     </div>
                 </section>
             </div>
-
-            <div class="aesthetic-separator"></div>
-
-            <!-- SECCIÓN 3: TABLA DE NIVELES DE PELIGRO EXTENDIDA -->
-            <section class="panel-section table-section">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <h3 style="margin-bottom: 0; font-size: 0.85rem;">Matriz <span id="tableCounter" style="font-size: 0.7rem; color: #666; font-weight: normal;">(0 expuestas)</span></h3>
-                    <button id="btnExportExcel" class="btn-export" title="Exportar tabla completa a Excel (.xls)">📥 Excel</button>
-                </div>
-                <div class="table-container">
-                    <table id="riskTable">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th id="thInun">Inundación</th>
-                                <th id="thHuay">Mov. Masas</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tableBody">
-                            <!-- Datos inyectados por JS -->
-                        </tbody>
-                    </table>
-                </div>
-            </section>
         </aside>
 
-        <!-- PANEL DERECHO: MAPA -->
-        <main class="map-container">
-            <div id="map"></div>
-
-            <!-- BOTÓN FLOTANTE DISCRETO README (SÍMBOLO "i" DENTRO DE CÍRCULO) -->
-            <button id="btnOpenReadme" class="btn-readme-icon" title="Información del Repositorio (README)">i</button>
-
-            <!-- VENTANA FLOTANTE GERENCIAL (MOVIBLE / DRAG & DROP) -->
-            <div id="floatingSummary" class="floating-summary-panel">
-                <div id="floatingHeader" class="floating-header">
-                    <span>📋 Resumen Ejecutivo FEN</span>
-                    <button id="btnCloseFloating" class="floating-close">&times;</button>
-                </div>
-                <div class="floating-body" id="floatingBody">
-                    <p style="font-size: 11px; color: #666; text-align: center; padding: 10px;">Sin filtros activos</p>
-                </div>
+        <!-- SECCIÓN 4: TABLA (MATRIZ DE PELIGROS) -->
+        <section class="table-section-mobile">
+            <div class="table-header-bar">
+                <h3 style="margin: 0; font-size: 0.82rem;">Matriz <span id="tableCounter" style="font-size: 0.68rem; color: #666; font-weight: normal;">(0 expuestas)</span></h3>
+                <button id="btnExportExcel" class="btn-export" title="Exportar tabla completa a Excel (.xls)">📥 Excel</button>
             </div>
-
-            <!-- Leyenda Dinámica Inferior Derecha -->
-            <div id="mapLegend" class="map-legend">
-                <h4>Leyenda</h4>
-                <div id="legendContent">Seleccione una capa de riesgo</div>
+            <div class="table-container">
+                <table id="riskTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th id="thInun">Inundación</th>
+                            <th id="thHuay">Mov. Masas</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Datos inyectados por JS -->
+                    </tbody>
+                </table>
             </div>
-        </main>
+        </section>
+
     </div>
 
     <!-- VENTANA EMERGENTE (MODAL) PARA EL README TÉCNICO -->
