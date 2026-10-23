@@ -244,17 +244,17 @@ tr.filtered-out {
 
 
 /* ---------------------------------------------------- */
-/* VERSIÓN MÓVIL (CELULAR) - FLUJO NATURAL CON SCROLL   */
+/* VERSIÓN MÓVIL (CELULAR) - LÍMITE EXACTO EN "E19"     */
 /* ---------------------------------------------------- */
 @media (max-width: 900px) {
-    body, html { height: auto; width: 100%; overflow: auto; }
+    body, html { height: 100%; width: 100%; overflow: hidden; }
     
     .dashboard-container { 
         display: flex;
         flex-direction: column; 
-        height: auto; 
+        height: 100vh; 
         width: 100vw;
-        overflow: visible;
+        overflow: hidden;
     }
 
     .side-panel { display: none !important; }
@@ -266,18 +266,19 @@ tr.filtered-out {
         align-items: center;
         background-color: var(--primary-blue);
         color: white;
-        padding: 5px 10px;
+        padding: 4px 8px;
         width: 100%;
-        height: 40px;
+        height: 38px;
+        flex: 0 0 auto;
     }
-    .header-titles h2 { font-size: 0.8rem; margin: 0; }
+    .header-titles h2 { font-size: 0.78rem; margin: 0; }
     .telemetry-inline { font-size: 0.58rem; opacity: 0.9; }
     .btn-readme-inline {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 24px;
-        height: 24px;
+        width: 23px;
+        height: 23px;
         background: rgba(255,255,255,0.15);
         color: white;
         border: 1px solid rgba(255,255,255,0.4);
@@ -293,36 +294,38 @@ tr.filtered-out {
         display: block !important;
         width: 100%;
         background-color: var(--bg-panel);
+        flex: 0 0 auto;
         border-bottom: 1px solid #ddd;
     }
     .mobile-grid-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
-    .mobile-controls-panel .panel-section { padding: 4px 8px; }
-    .mobile-controls-panel .panel-section h3 { font-size: 0.7rem; margin-bottom: 2px; color: var(--primary-blue); }
+    .mobile-controls-panel .panel-section { padding: 3px 6px; }
+    .mobile-controls-panel .panel-section h3 { font-size: 0.68rem; margin-bottom: 1px; color: var(--primary-blue); }
     .mobile-controls-panel .filter-group label { font-size: 0.58rem; margin-bottom: 1px; color: #555; }
-    .mobile-controls-panel .search-input { height: 22px; font-size: 0.65rem; padding: 1px 4px; }
-    .mobile-controls-panel .toggle-group label { font-size: 0.62rem; margin-bottom: 1px; }
+    .mobile-controls-panel .search-input { height: 21px; font-size: 0.65rem; padding: 1px 3px; }
+    .mobile-controls-panel .toggle-group label { font-size: 0.6rem; margin-bottom: 1px; }
 
-    /* 3. MAPA (ALTURA FIJA Y VISIBLE CONSTANTE) */
+    /* 3. MAPA (ALTURA EXACTA HASTA LA ZONA DE E19 - ~30vh) */
     .map-container {
         width: 100%;
-        height: 38vh;
-        min-height: 250px;
+        height: 30vh;
+        flex: 0 0 30vh;
         position: relative;
     }
-    .floating-summary-panel { top: 6px; left: 6px; width: 200px; max-height: 140px; }
-    .map-legend { bottom: 8px; right: 8px; max-width: 135px; font-size: 0.65rem; }
+    .floating-summary-panel { top: 4px; left: 4px; width: 190px; max-height: 120px; }
+    .map-legend { bottom: 6px; right: 6px; max-width: 130px; font-size: 0.62rem; }
 
-    /* 4. MATRIZ TABULAR INFERIOR (SCROLL FLUIDO DEBAJO DEL MAPA) */
+    /* 4. MATRIZ TABULAR INFERIOR (SUBE Y OCUPA EL RESTO CON SCROLL) */
     .table-section-mobile {
         display: flex !important;
         flex-direction: column;
         width: 100%;
+        flex: 1;
         background: white;
         border-top: 1px solid #ccc;
-        padding: 6px 10px;
-        height: 320px; /* Altura controlada con scroll interno */
+        padding: 4px 6px;
+        overflow: hidden;
     }
-    .table-header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+    .table-header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; flex: 0 0 auto; }
     .table-container { 
         flex: 1; 
         overflow-y: auto; 
@@ -331,8 +334,8 @@ tr.filtered-out {
         border-radius: 4px; 
     }
     
-    #riskTableMob { font-size: 0.65rem; }
-    #riskTableMob th { padding: 4px; font-size: 0.65rem; background-color: var(--primary-blue); color: white; position: sticky; top: 0; z-index: 2; }
-    #riskTableMob td { padding: 3px 4px; }
-    .table-section-mobile .btn-export { padding: 2px 5px; font-size: 0.6rem; }
+    #riskTableMob { font-size: 0.62rem; }
+    #riskTableMob th { padding: 3px; font-size: 0.62rem; background-color: var(--primary-blue); color: white; position: sticky; top: 0; z-index: 2; }
+    #riskTableMob td { padding: 2px 3px; }
+    .table-section-mobile .btn-export { padding: 2px 4px; font-size: 0.58rem; }
 }
