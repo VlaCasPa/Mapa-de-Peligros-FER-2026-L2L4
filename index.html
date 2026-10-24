@@ -235,7 +235,7 @@
                 <p>Este repositorio centraliza la arquitectura de datos geoespaciales, los mapas base ráster y el análisis topográfico orientados a evaluar la exposición física y la zonificación de peligros frente a las precipitaciones intensas asociadas al Fenómeno El Niño (FEN) sobre los frentes de obra, estaciones y estructuras definitivas del Proyecto.</p>
                 
                 <h2> Sustento Normativo y Fuentes Oficiales</h2>
-                <p>La información espacial, vectorial y matricial procesada en este dashboard proviene de bases de datos oficiales del Estado Peruano, garantizando trazabilidad técnica para la toma de decisiones:</p>
+                <p>La información espacial, vectorial y matricial procesada en este geomapa proviene de bases de datos oficiales del Estado Peruano, garantizando trazabilidad técnica para la toma de decisiones:</p>
                 <ul>
                     <li><strong>Entidad Generadora:</strong> Centro Nacional de Estimación, Prevención y Reducción del Riesgo de Desastres (CENEPRED) / Sistema de Información para la Gestión del Riesgo de Desastres (SIGRID).</li>
                     <li><strong>Documento Técnico de Referencia:</strong> <em>Estudio de escenarios de riesgo por inundaciones y movimientos en masa ante lluvias intensas asociadas al Fenómeno El Niño</em> (Actualizado en base al <strong>Informe Técnico N° 69-2026/SENAMHI-DMA-SPC</strong>).</li>
@@ -247,7 +247,7 @@
                 <ul>
                     <li><strong>Análisis Topográfico de Elevación (MDE):</strong> Incorporación de modelos digitales de elevación georreferenciados para identificar microcuencas, pendientes críticas y cotas expuestas en los tramos de baja altitud (Callao) y estribaciones andinas (Lima Este).</li>
                     <li><strong>Zonificación de Peligros (CENEPRED):</strong> Procesamiento vectorial de polígonos bajo clasificaciones estandarizadas de susceptibilidad y riesgo (Niveles: Muy Alto, Alto, Medio y Bajo) tanto para eventos de inundación como para movimientos en masa.</li>
-                    <li><strong>Matriz y Resumen de Estructuras Críticas:</strong> Integración dinámica de coordenadas (WGS84 EPSG:4326) de pozos de ventilación (PV) y estaciones (E), permitiendo un monitoreo cruzado automatizado mediante una matriz tabular sincronizada con la espacialidad del mapa.</li>
+                    <li><strong>Matriz y Resumen de Estructuras Críticas:</strong> Integración dinámica de coordenadas (WGS84 EPSG:4326) de pozos de ventilación (PV) y estaciones (E), permitiendo un monitoreo cruzado entre las tablas y geomapa.</li>
                 </ul>
 
                 <h2> Alertamiento y Escenarios de Riesgo FEN</h2>
@@ -261,14 +261,14 @@
                 <ul>
                     <li><code>/datos_vectoriales/</code>: Capas geográficas oficiales en formato GeoJSON (Límites distritales, Líneas de metro, Estructuras, Ríos Rímac y Chillón, y polígonos de peligro CENEPRED).</li>
                     <li><code>/datos_raster/</code>: Modelos digitales de elevación optimizados (`elevacion.png`, `.pgw`, `.prj`) para el análisis topográfico del relieve.</li>
-                    <li><code>app.js</code>: Lógica del mapa interactivo Leaflet, motor de filtrado FEN cruzado (Mapa ⇄ Tabla) y herramientas de calibración y exportación de datos en formato Excel tabular (`.xls`).</li>
-                    <li><code>index.html</code> & <code>style.css</code>: Arquitectura de la interfaz y diseño responsive del Dashboard Gerencial.</li>
+                    <li><code>app.js</code>: Lógica del mapa interactivo Leaflet, motor de filtrado FEN cruzado (Mapa ⇄ Tabla) y herramientas de calibración y exportación de datos en formato Excel (`.xls`).</li>
+                    <li><code>index.html</code> & <code>style.css</code>: Arquitectura de la interfaz y diseño responsive del Mapa de Peligros.</li>
                 </ul>
 
                 <h2>📋 Ficha Técnica y Autoría</h2>
                 <ul>
                     <li><strong>Diseño:</strong> Vladimir Casas</li>
-                    <li><strong>Software GIS de Procesamiento:</strong> RustGIS / QGIS</li>
+                    <li><strong>Software GIS de Procesamiento:</strong> Civil3D / QGIS / Code</li>
                     <li><strong>Actualización del Sistema:</strong> Octubre 2026</li>
                 </ul>
                 
