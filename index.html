@@ -229,12 +229,12 @@
         <div class="modal-content">
             <button id="btnCloseReadme" class="modal-close">&times;</button>
             <div class="markdown-body">
-                <h1>🗺️ Dashboard Geoespacial de Riesgos: Línea 2 y Línea 4 del Metro de Lima ante el Fenómeno del Niño</h1>
+                <h1> Mapa Geoespacial de Peligros: Línea 2 y Línea 4 del Metro de Lima ante el Fenómeno del Niño FEN </h1>
                 <p><strong>Sistema de Alerta Temprana y Monitoreo Geoespacial para Infraestructuras Críticas</strong></p>
                 
                 <p>Este repositorio centraliza la arquitectura de datos geoespaciales, los mapas base ráster y el análisis topográfico orientados a evaluar la exposición física y la zonificación de peligros frente a las precipitaciones intensas asociadas al Fenómeno El Niño (FEN) sobre los frentes de obra, estaciones y estructuras definitivas del Proyecto.</p>
                 
-                <h2>🏛️ Sustento Normativo y Fuentes Oficiales</h2>
+                <h2> Sustento Normativo y Fuentes Oficiales</h2>
                 <p>La información espacial, vectorial y matricial procesada en este dashboard proviene de bases de datos oficiales del Estado Peruano, garantizando trazabilidad técnica para la toma de decisiones:</p>
                 <ul>
                     <li><strong>Entidad Generadora:</strong> Centro Nacional de Estimación, Prevención y Reducción del Riesgo de Desastres (CENEPRED) / Sistema de Información para la Gestión del Riesgo de Desastres (SIGRID).</li>
@@ -242,25 +242,22 @@
                     <li><strong>Enlace Oficial de Repositorio SIGRID:</strong> <a href="https://sigrid.cenepred.gob.pe/sigridv3/documento/22169" target="_blank" rel="noopener noreferrer">Consultar Repositorio SIGRID N° 22169</a>.</li>
                 </ul>
 
-                <h2>🎯 Objetivo del Proyecto</h2>
-                <p>Transformar la cartografía temática oficial en un <strong>Dashboard de Gestión Visual Automatizado</strong>. La interfaz combina un panel de control gerencial con un visor cartográfico interactivo que permite a las gerencias de ingeniería, construcción y permisos identificar de manera inmediata la superposición espacial entre las estructuras de las Líneas 2 y 4 y las áreas de susceptibilidad a nivel distrital.</p>
-                
-                <h2>🔬 Sustento Técnico del Procesamiento GIS</h2>
-                <p>El desarrollo cartográfico e integración de capas se estructuró bajo rigurosos estándares geoespaciales en RustGIS y QGIS:</p>
+                               <h2>🔬 Procesamiento GIS</h2>
+                <p>El desarrollo cartográfico e integración de capas se estructuró bajo rigurosos estándares geoespaciales en Civil3D, QGIS y Code:</p>
                 <ul>
                     <li><strong>Análisis Topográfico de Elevación (MDE):</strong> Incorporación de modelos digitales de elevación georreferenciados para identificar microcuencas, pendientes críticas y cotas expuestas en los tramos de baja altitud (Callao) y estribaciones andinas (Lima Este).</li>
                     <li><strong>Zonificación de Peligros (CENEPRED):</strong> Procesamiento vectorial de polígonos bajo clasificaciones estandarizadas de susceptibilidad y riesgo (Niveles: Muy Alto, Alto, Medio y Bajo) tanto para eventos de inundación como para movimientos en masa.</li>
                     <li><strong>Matriz y Resumen de Estructuras Críticas:</strong> Integración dinámica de coordenadas (WGS84 EPSG:4326) de pozos de ventilación (PV) y estaciones (E), permitiendo un monitoreo cruzado automatizado mediante una matriz tabular sincronizada con la espacialidad del mapa.</li>
                 </ul>
 
-                <h2>⚠️ Alertamiento y Escenarios de Riesgo FEN</h2>
+                <h2> Alertamiento y Escenarios de Riesgo FEN</h2>
                 <p>El sistema se enfoca estrictamente en la identificación y alertamiento preventivo de las zonas de exposición:</p>
                 <ul>
                     <li><strong>Escenario 1 - Inundación (Muy Alto / Alto - Tramo Callao y Lima Centro):</strong> Alerta por saturación de sistemas de drenaje urbano, aniegos en zonas de baja cota topográfica e incremento del caudal y desborde potencial de los ríos Rímac y Chillón sobre frentes de excavación y accesos a estaciones subterráneas.</li>
                     <li><strong>Escenario 2 - Movimientos en Masa / Huaycos (Muy Alto / Alto - Tramo Lima Este / Ate):</strong> Alerta por activación de quebradas secas en las estribaciones andinas, caída de detritos y flujos de escorrentía superficial que comprometen portales de obra, taludes y áreas de acopio logístico.</li>
                 </ul>
 
-                <h2>📂 Estructura del Repositorio</h2>
+                <h2> Estructura del Repositorio</h2>
                 <ul>
                     <li><code>/datos_vectoriales/</code>: Capas geográficas oficiales en formato GeoJSON (Límites distritales, Líneas de metro, Estructuras, Ríos Rímac y Chillón, y polígonos de peligro CENEPRED).</li>
                     <li><code>/datos_raster/</code>: Modelos digitales de elevación optimizados (`elevacion.png`, `.pgw`, `.prj`) para el análisis topográfico del relieve.</li>
@@ -270,7 +267,7 @@
 
                 <h2>📋 Ficha Técnica y Autoría</h2>
                 <ul>
-                    <li><strong>Diseño e Ingeniería de Permisos:</strong> Vladimir Casas</li>
+                    <li><strong>Diseño:</strong> Vladimir Casas</li>
                     <li><strong>Software GIS de Procesamiento:</strong> RustGIS / QGIS</li>
                     <li><strong>Actualización del Sistema:</strong> Octubre 2026</li>
                 </ul>
