@@ -88,7 +88,7 @@ El cruce espacial de las estaciones con los mapas de peligro arroja tres zonas d
 *   📁 `documentacion/`: Tablas maestras de datos socioeconómicos y de peligro del Estado Peruano.
 
 ---
-**Diseño e Ingeniería de Permisos:** Vladimir Casas  
+**Desarrollo:** Vladimir Casas  
 **Software GIS:** RustGIS / QGIS  
 **Actualización:** Octubre 2026
 
