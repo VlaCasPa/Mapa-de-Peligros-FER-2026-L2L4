@@ -107,6 +107,8 @@
                     <label><input type="checkbox" id="chkTopografia"> Topografía (Ráster MDE)</label>
                     <label><input type="checkbox" id="chkInundacion"> Peligro Inundación</label>
                     <label><input type="checkbox" id="chkHuaycos"> Peligro Mov. Masas</label>
+                    <!-- NUEVA CAPA DE PUNTOS CRÍTICOS -->
+                    <label><input type="checkbox" id="chkPuntosCriticos"> Puntos Críticos (Bypasses FEN)</label>
                 </div>
             </section>
 
@@ -172,6 +174,8 @@
                         <label><input type="checkbox" id="chkTopografiaMob"> Topografía (MDE)</label>
                         <label><input type="checkbox" id="chkInundacionMob"> Inundación</label>
                         <label><input type="checkbox" id="chkHuaycosMob"> Mov. Masas</label>
+                        <!-- NUEVA CAPA MÓVIL SINCRONIZADA -->
+                        <label><input type="checkbox" id="chkPuntosCriticosMob"> Puntos Críticos</label>
                     </div>
                 </section>
             </div>
@@ -242,12 +246,13 @@
                     <li><strong>Enlace Oficial de Repositorio SIGRID:</strong> <a href="https://sigrid.cenepred.gob.pe/sigridv3/documento/22169" target="_blank" rel="noopener noreferrer">Consultar Repositorio SIGRID N° 22169</a>.</li>
                 </ul>
 
-                               <h2> Procesamiento GIS</h2>
+                <h2> Procesamiento GIS</h2>
                 <p>El desarrollo cartográfico e integración de capas se estructuró bajo rigurosos estándares geoespaciales en Civil3D, QGIS y Code:</p>
                 <ul>
                     <li><strong>Análisis Topográfico de Elevación (MDE):</strong> Incorporación de modelos digitales de elevación georreferenciados para identificar microcuencas, pendientes críticas y cotas expuestas en los tramos de baja altitud (Callao) y estribaciones andinas (Lima Este).</li>
                     <li><strong>Zonificación de Peligros (CENEPRED):</strong> Procesamiento vectorial de polígonos bajo clasificaciones estandarizadas de susceptibilidad y riesgo (Niveles: Muy Alto, Alto, Medio y Bajo) tanto para eventos de inundación como para movimientos en masa.</li>
                     <li><strong>Matriz y Resumen de Estructuras Críticas:</strong> Integración dinámica de coordenadas (WGS84 EPSG:4326) de pozos de ventilación (PV) y estaciones (E), permitiendo un monitoreo cruzado entre las tablas y geomapa.</li>
+                    <li><strong>Capa de Puntos Críticos (Pasos a Desnivel FEN):</strong> Mapeo georreferenciado e interoperable en tiempo real de los pasos a desnivel e intercambios viales en riesgo por inundación y huaycos en Lima Metropolitana y Callao.</li>
                 </ul>
 
                 <h2> Alertamiento y Escenarios de Riesgo FEN</h2>
@@ -269,7 +274,7 @@
                 <ul>
                     <li><strong>Desarrollo:</strong> Vladimir Casas</li>
                     <li><strong>Software GIS de Procesamiento:</strong> Civil3D / QGIS / Code</li>
-                    <li><strong>Actualización del Sistema:</strong> Octubre 2026</li>
+                    <li><strong>Actualización del Sistema:</strong> Noviembre 2026</li>
                 </ul>
                 
                 <div style="text-align: center; margin-top: 25px;">
