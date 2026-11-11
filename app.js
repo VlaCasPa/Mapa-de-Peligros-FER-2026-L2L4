@@ -124,11 +124,13 @@ function getTextColor(nivel) {
     return '#000000';
 }
 
-// 3. VARIABLES GLOBALES
+// 3. VARIABLES GLOBALES DE CAPAS
 let layerRios, layerLineas, layerDistritos, layerEstructuras, layerInundacion, layerHuaycos;
+let layerPuntosCriticos = null; // Capa de Bypasses / Pasos a Desnivel FEN
 let rasterElevationLayer = null;
 let rawOriginBounds = null;
 let tableDataMaster = [];
+let bypassesDataMaster = [];
 const baseUrl = 'datos_vectoriales/';
 
 function utm18SToLatLng(easting, northing) {
@@ -236,7 +238,7 @@ fetch('datos_raster/elevacion.pgw')
     }).catch(() => {});
 
 
-// --- CARGA DE CAPAS ---
+// --- CARGA DE CAPAS VECTORIALES PREEXISTENTES ---
 fetch(baseUrl + 'PELIGRO%20INUNDACION%20LIMA%20Y%20CALLAO.geojson')
     .then(res => res.json())
     .then(data => {
@@ -320,6 +322,140 @@ fetch(baseUrl + 'ESTRUCTURAS%20L2L4.geojson')
     });
 
 
+// ============================================================================
+// CARGA DINÁMICA DE LA NUEVA CAPA: "PUNTOS CRÍTICOS" (BYPASSES FEN 2026)
+// ============================================================================
+const csvPuntosCriticosUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3Arv4yNYmU11eQ529I9yzof1p5oR1A4SHkUNT3i4e6YCnsDeUG0BFQm36L3pIRxCLtJhOKC10UR-R/pub?gid=1027540316&single=true&output=csv';
+
+function iniciarCargaPuntosCriticos() {
+    if (typeof Papa === 'undefined') {
+        setTimeout(iniciarCargaPuntosCriticos, 100);
+        return;
+    }
+
+    Papa.parse(csvPuntosCriticosUrl, {
+        download: true,
+        header: false,
+        skipEmptyLines: true,
+        complete: function(results) {
+            construirCapaPuntosCriticos(results.data);
+        },
+        error: function(err) {
+            console.error("Error al cargar el CSV de Puntos Críticos:", err);
+        }
+    });
+}
+
+function normalizarNum(val) {
+    if (!val) return NaN;
+    let s = String(val).trim().replace(',', '.');
+    return parseFloat(s);
+}
+
+function construirCapaPuntosCriticos(filas) {
+    layerPuntosCriticos = L.layerGroup();
+    bypassesDataMaster = [];
+
+    filas.forEach(row => {
+        if (!row || row.length < 8) return;
+        
+        let colB = String(row[1] || '').trim(); // Nombre del Paso a Desnivel / Intercambio
+        let colC = String(row[2] || '').trim(); // Dirección
+        let colD = String(row[3] || '').trim(); // Distrito
+        let colE = String(row[4] || '').trim(); // Peligro Inundación
+        let colF = String(row[5] || '').trim(); // Peligro Huaycos
+        let colG = row[6];                      // Latitud
+        let colH = row[7];                      // Longitud
+
+        let lat = normalizarNum(colG);
+        let lon = normalizarNum(colH);
+
+        // Descartar encabezados, títulos y filas de métricas
+        if (isNaN(lat) || isNaN(lon)) return;
+        if (Math.abs(lat) > 90 || Math.abs(lon) > 180) return;
+        if (!colB || normalizarTexto(colB).includes('PASO A DESNIVEL') && normalizarTexto(colB).includes('INTERCAMBIO') && !colB.includes('-')) return;
+
+        let colorInun = getColorPeligro(colE);
+        let colorHuay = getColorPeligro(colF);
+
+        // Icono de alerta con zIndexOffset superior (3000) por encima de todo
+        const iconAlerta = L.divIcon({
+            className: 'custom-punto-critico-icon',
+            html: `
+                <div class="punto-critico-pin-wrapper">
+                    <div class="punto-critico-pin" title="${colB}">⚠️</div>
+                </div>
+            `,
+            iconSize: [26, 26],
+            iconAnchor: [13, 13]
+        });
+
+        const popupHtml = `
+            <div class="popup-punto-critico">
+                <div class="popup-punto-critico-title">⚠️ ${colB}</div>
+                <div class="popup-punto-critico-row"><b>Dirección:</b> ${colC || 'No especificada'}</div>
+                <div class="popup-punto-critico-row"><b>Distrito:</b> ${colD || 'Lima / Callao'}</div>
+                <div class="popup-punto-critico-row">
+                    <b>Peligro Inundación:</b> 
+                    <span class="popup-punto-critico-badge" style="background-color: ${colorInun};">${colE || 'N/D'}</span>
+                </div>
+                <div class="popup-punto-critico-row">
+                    <b>Peligro Huaycos:</b> 
+                    <span class="popup-punto-critico-badge" style="background-color: ${colorHuay};">${colF || 'N/D'}</span>
+                </div>
+                <div class="popup-punto-critico-row" style="font-size: 0.72rem; color: #666; margin-top: 6px;">
+                    <b>Coords:</b> ${lat.toFixed(4)}, ${lon.toFixed(4)}
+                </div>
+            </div>
+        `;
+
+        const marker = L.marker([lat, lon], {
+            icon: iconAlerta,
+            zIndexOffset: 3000
+        });
+
+        marker.bindPopup(popupHtml);
+        layerPuntosCriticos.addLayer(marker);
+        bypassesDataMaster.push({ colB, colC, colD, colE, colF, lat, lon });
+    });
+
+    // Validar si el checkbox estaba marcado al iniciar
+    const chk = document.getElementById('chkPuntosCriticos');
+    const chkMob = document.getElementById('chkPuntosCriticosMob');
+    if ((chk && chk.checked) || (chkMob && chkMob.checked)) {
+        layerPuntosCriticos.addTo(map);
+    }
+}
+
+iniciarCargaPuntosCriticos();
+
+function manejarPuntosCriticos(e) {
+    const checked = e.target.checked;
+    const chkPC = document.getElementById('chkPuntosCriticos');
+    const chkPCMob = document.getElementById('chkPuntosCriticosMob');
+
+    if (chkPC) chkPC.checked = checked;
+    if (chkPCMob) chkPCMob.checked = checked;
+
+    if (!layerPuntosCriticos) return;
+
+    if (checked) {
+        if (!map.hasLayer(layerPuntosCriticos)) {
+            map.addLayer(layerPuntosCriticos);
+        }
+    } else {
+        if (map.hasLayer(layerPuntosCriticos)) {
+            map.removeLayer(layerPuntosCriticos);
+        }
+    }
+}
+
+const chkPC = document.getElementById('chkPuntosCriticos');
+const chkPCMob = document.getElementById('chkPuntosCriticosMob');
+if (chkPC) chkPC.addEventListener('change', manejarPuntosCriticos);
+if (chkPCMob) chkPCMob.addEventListener('change', manejarPuntosCriticos);
+
+
 // --- WIDGET DE CALIBRACIÓN RÁSTER CON BOTÓN DE CIERRE (×) ---
 const calibBox = document.createElement('div');
 calibBox.id = 'rasterCalibBox';
@@ -393,7 +529,7 @@ map.on('click', function(e) {
 });
 
 
-// --- CARGA DE TABLA CSV CON PAPAPARSE ---
+// --- CARGA DE TABLA CSV DE ESTRUCTURAS (METRO) ---
 const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTE27I4VwWlYKQEgCkNRcGydFG8zFseeR5_0SFF3F_-HEW_VLBPUY_G8uCuexKw2NkkIEq3Wl1i7ipE/pub?gid=1027540316&single=true&output=csv';
 
 function iniciarCargaCSV() {
