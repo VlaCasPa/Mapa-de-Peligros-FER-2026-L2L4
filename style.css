@@ -202,10 +202,67 @@ tr.filtered-out {
 .legend-item { display: flex; align-items: center; margin-bottom: 3px; }
 .legend-color { width: 13px; height: 13px; margin-right: 6px; border-radius: 3px; display: inline-block; border: 1px solid rgba(0,0,0,0.2); }
 
+/* Estructuras L2/L4 */
 .structure-marker-container { display: flex; align-items: center; pointer-events: none; }
 .structure-dot { width: 14px; height: 14px; background-color: #0b3d59; border: 2px solid #ffffff; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.4); flex-shrink: 0; }
 .structure-label { background-color: #ffffff; color: #000000; padding: 2px 6px; margin-left: 6px; border-radius: 3px; font-size: 11px; font-weight: bold; border: 1px solid #cccccc; box-shadow: 0 1px 3px rgba(0,0,0,0.2); white-space: nowrap; transition: background-color 0.2s, color 0.2s; }
 
+/* ---------------------------------------------------- */
+/* ESTILOS DE LA NUEVA CAPA "PUNTOS CRÍTICOS" (BYPASS)  */
+/* ---------------------------------------------------- */
+.punto-critico-pin-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+.punto-critico-pin {
+    width: 26px;
+    height: 26px;
+    background: #d32f2f;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: bold;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.punto-critico-pin:hover {
+    transform: scale(1.18);
+    box-shadow: 0 4px 12px rgba(211, 47, 47, 0.7);
+}
+
+.popup-punto-critico {
+    padding: 8px;
+    font-size: 0.8rem;
+    line-height: 1.45;
+}
+.popup-punto-critico-title {
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: var(--primary-blue);
+    border-bottom: 2px solid var(--primary-blue);
+    padding-bottom: 4px;
+    margin-bottom: 6px;
+}
+.popup-punto-critico-row {
+    margin-bottom: 4px;
+    color: #333;
+}
+.popup-punto-critico-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: bold;
+    font-size: 0.72rem;
+    color: white;
+}
+
+/* Modales */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.6); z-index: 9999; display: flex; justify-content: center; align-items: center; padding: 20px; }
 .modal-content { background-color: white; width: 85%; max-width: 900px; height: 85vh; border-radius: 10px; box-shadow: 0 5px 25px rgba(0,0,0,0.3); position: relative; display: flex; flex-direction: column; padding: 30px; overflow-y: auto; }
 .modal-close { position: absolute; top: 15px; right: 20px; background: none; border: none; font-size: 28px; font-weight: bold; color: #555; cursor: pointer; }
@@ -304,11 +361,11 @@ tr.filtered-out {
     .mobile-controls-panel .search-input { height: 20px; font-size: 0.62rem; padding: 1px 3px; }
     .mobile-controls-panel .toggle-group label { font-size: 0.58rem; margin-bottom: 1px; }
 
-    /* 3. MAPA (REDUCIDO A 47vh PARA DAR MÁS ESPACIO A LA TABLA) */
+    /* 3. MAPA (ALTURA FIJA Y VISIBLE) */
     .map-container {
         width: 100%;
-        height: 47vh; /* <--- Cambia este valor (antes estaba en 47vh) */
-        flex: 0 0 47vh; /* <--- Y este valor para que coincida */
+        height: 47vh;
+        flex: 0 0 47vh;
         position: relative;
         overflow: hidden;
     }
@@ -321,7 +378,7 @@ tr.filtered-out {
     .floating-summary-panel { top: 4px; left: 4px; width: 180px; max-height: 110px; }
     .map-legend { bottom: 6px; right: 6px; max-width: 125px; font-size: 0.6rem; }
 
-    /* 4. MATRIZ TABULAR INFERIOR (AMPLIADA PARA VER MÁS FILAS ANTES DEL SCROLL) */
+    /* 4. MATRIZ TABULAR INFERIOR (SCROLL INDEPENDIENTE) */
     .table-section-mobile {
         display: flex !important;
         flex-direction: column;
