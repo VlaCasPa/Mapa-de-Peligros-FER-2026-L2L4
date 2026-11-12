@@ -126,11 +126,10 @@ function getTextColor(nivel) {
 
 // 3. VARIABLES GLOBALES DE CAPAS
 let layerRios, layerLineas, layerDistritos, layerEstructuras, layerInundacion, layerHuaycos;
-let layerPuntosCriticos = null; // Capa de Bypasses / Pasos a Desnivel FEN
+let layerPuntosCriticos = null;
 let rasterElevationLayer = null;
 let rawOriginBounds = null;
 let tableDataMaster = [];
-let bypassesDataMaster = [];
 const baseUrl = 'datos_vectoriales/';
 
 function utm18SToLatLng(easting, northing) {
@@ -323,67 +322,55 @@ fetch(baseUrl + 'ESTRUCTURAS%20L2L4.geojson')
 
 
 // ============================================================================
-// CARGA DINÁMICA DE LA NUEVA CAPA: "PUNTOS CRÍTICOS" (BYPASSES FEN 2026)
+// CAPA: "PUNTOS CRÍTICOS" (BYPASSES FEN 2026) - PUBLICACIÓN EN VIVO + FALLBACK
 // ============================================================================
-const csvPuntosCriticosUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3Arv4yNYmU11eQ529I9yzof1p5oR1A4SHkUNT3i4e6YCnsDeUG0BFQm36L3pIRxCLtJhOKC10UR-R/pub?gid=1027540316&single=true&output=csv';
+const puntosCriticosDataset = [
+    { name: "Paso a Desnivel Javier Prado - Vía Expresa Paseo de la República", dir: "Av. Javier Prado Este con Vía Expresa Paseo de la República", dist: "San Isidro / La Victoria", inun: "Muy Alto", huay: "Bajo", lat: -12.0883, lon: -77.0275 },
+    { name: "Paso a Desnivel Javier Prado Este - José Gálvez Barrenechea", dir: "Av. Javier Prado Este con Av. José Gálvez Barrenechea", dist: "San Borja / San Isidro", inun: "Muy Alto", huay: "Bajo", lat: -12.0903, lon: -77.0142 },
+    { name: "Intercambio Vial Panamericana Norte - San Juan de Dios", dir: "Autopista Panamericana Norte con Av. San Juan de Dios", dist: "Puente Piedra", inun: "Muy Alto", huay: "Bajo", lat: -11.8596, lon: -77.0754 },
+    { name: "Intercambio Separadora Industrial - Juan Velasco Alvarado", dir: "Av. Separadora Industrial con Av. Juan Velasco Alvarado", dist: "Villa El Salvador", inun: "Alto", huay: "Bajo", lat: -12.2036, lon: -76.9388 },
+    { name: "Intercambio Panamericana Norte - Universitaria", dir: "Av. Universitaria con Autopista Panamericana Norte", dist: "Los Olivos / San Martín de Porres", inun: "Muy Alto", huay: "Bajo", lat: -11.9664, lon: -77.0706 },
+    { name: "Intercambio Universitaria - Vía Expresa Línea Amarilla", dir: "Av. Universitaria con Vía Expresa Línea Amarilla (Margen Río Rímac)", dist: "Lima / San Martín de Porres", inun: "Muy Alto", huay: "Bajo", lat: -12.0461, lon: -77.0735 },
+    { name: "Bajada de la Avenida Malecón (Acceso Costa Verde)", dir: "Av. Del Ejército / Bajada Malecón de la Marina", dist: "Miraflores", inun: "Alto", huay: "Medio", lat: -12.1221, lon: -77.0383 },
+    { name: "Bypass 28 de Julio - Arequipa", dir: "Av. 28 de Julio con Av. Arequipa y Av. Garcilaso de la Vega", dist: "Lima (Cercado)", inun: "Muy Alto", huay: "Bajo", lat: -12.0642, lon: -77.0366 },
+    { name: "Bypass 28 de Julio - Vía Expresa Paseo de la República", dir: "Av. 28 de Julio con Vía Expresa Paseo de la República", dist: "Lima (Cercado) / La Victoria", inun: "Muy Alto", huay: "Bajo", lat: -12.0649, lon: -77.0328 },
+    { name: "Bypass Alfonso Ugarte - Argentina", dir: "Av. Alfonso Ugarte con Av. Argentina (Plaza Ramón Castilla)", dist: "Lima (Cercado)", inun: "Muy Alto", huay: "Bajo", lat: -12.0436, lon: -77.0425 },
+    { name: "Paso a Desnivel Angamos Este - San Luis", dir: "Av. Angamos Este con Av. San Luis", dist: "San Borja", inun: "Alto", huay: "Bajo", lat: -12.1107, lon: -77.0006 },
+    { name: "Intercambio Benavides - Panamericana Sur", dir: "Av. Alfredo Benavides con Autopista Panamericana Sur (Pista Nueva)", dist: "Santiago de Surco", inun: "Muy Alto", huay: "Bajo", lat: -12.1292, lon: -76.9806 },
+    { name: "Bypass Brasil - La Marina", dir: "Av. Brasil con Av. La Marina y Av. Javier Prado Oeste", dist: "Magdalena del Mar / Jesús María", inun: "Muy Alto", huay: "Bajo", lat: -12.0837, lon: -77.0682 },
+    { name: "Intercambio Brigadier Mateo Pumacahua - Panamericana Sur", dir: "Av. Brigadier Mateo Pumacahua con Autopista Panamericana Sur", dist: "Chorrillos / Villa El Salvador", inun: "Muy Alto", huay: "Bajo", lat: -12.1889, lon: -76.9667 },
+    { name: "Bypass Javier Prado - Arequipa", dir: "Av. Javier Prado Oeste con Av. Arequipa", dist: "San Isidro", inun: "Muy Alto", huay: "Bajo", lat: -12.0911, lon: -77.0319 },
+    { name: "Bypass México - Vía Expresa Paseo de la República", dir: "Av. México con Vía Expresa Paseo de la República", dist: "La Victoria", inun: "Muy Alto", huay: "Bajo", lat: -12.0747, lon: -77.0289 },
+    { name: "Bypass Tingo María - Venezuela", dir: "Av. Tingo María con Av. Venezuela", dist: "Breña / Lima (Cercado)", inun: "Muy Alto", huay: "Bajo", lat: -12.0601, lon: -77.0603 },
+    { name: "Bypass Néstor Gambetta - Acceso Aeropuerto", dir: "Av. Néstor Gambetta con cruce ramal Aeropuerto / Faucett", dist: "Callao", inun: "Muy Alto", huay: "Bajo", lat: -12.0135, lon: -77.1189 },
+    { name: "Paso a Desnivel Óvalo Pachacútec - 26 de Noviembre", dir: "Óvalo Pachacútec con Av. 26 de Noviembre", dist: "Villa María del Triunfo", inun: "Muy Alto", huay: "Medio", lat: -12.1648, lon: -76.9298 },
+    { name: "Intercambio Vía de Evitamiento - Prolongación Tacna", dir: "Vía de Evitamiento con Av. Prolongación Tacna (Puente Santa Rosa)", dist: "Rímac / Lima", inun: "Muy Alto", huay: "Bajo", lat: -12.0378, lon: -77.0317 },
+    { name: "Intercambio Vial Nuevo Aeropuerto - Línea Amarilla / Morales Duárez", dir: "Av. Elmer Faucett con Av. Morales Duárez / Puente Santa Rosa", dist: "Callao / Carmen de la Legua", inun: "Muy Alto", huay: "Bajo", lat: -12.0304, lon: -77.1065 },
+    { name: "Intercambio Vial Ramiro Prialé - Huachipa / Las Torres", dir: "Autopista Ramiro Prialé con Av. Las Torres (Puente Huachipa)", dist: "Ate / Lurigancho-Chosica", inun: "Muy Alto", huay: "Alto", lat: -12.0320, lon: -76.9266 },
+    { name: "Paso a Desnivel Prolongación Javier Prado - Nicolás Ayllón (Carretera Central)", dir: "Av. Prolongación Javier Prado Este con Av. Nicolás Ayllón (Carretera Central / Estación E26)", dist: "Ate", inun: "Muy Alto", huay: "Muy Alto", lat: -12.0463, lon: -76.9382 }
+];
 
-function iniciarCargaPuntosCriticos() {
-    if (typeof Papa === 'undefined') {
-        setTimeout(iniciarCargaPuntosCriticos, 100);
-        return;
+function parsearCoordDecimal(val) {
+    if (val === undefined || val === null) return NaN;
+    let limpio = String(val).trim().replace(',', '.');
+    return parseFloat(limpio);
+}
+
+function renderizarPuntosCriticos(lista) {
+    if (layerPuntosCriticos && map.hasLayer(layerPuntosCriticos)) {
+        map.removeLayer(layerPuntosCriticos);
     }
-
-    Papa.parse(csvPuntosCriticosUrl, {
-        download: true,
-        header: false,
-        skipEmptyLines: true,
-        complete: function(results) {
-            construirCapaPuntosCriticos(results.data);
-        },
-        error: function(err) {
-            console.error("Error al cargar el CSV de Puntos Críticos:", err);
-        }
-    });
-}
-
-function normalizarNum(val) {
-    if (!val) return NaN;
-    let s = String(val).trim().replace(',', '.');
-    return parseFloat(s);
-}
-
-function construirCapaPuntosCriticos(filas) {
     layerPuntosCriticos = L.layerGroup();
-    bypassesDataMaster = [];
 
-    filas.forEach(row => {
-        if (!row || row.length < 8) return;
-        
-        let colB = String(row[1] || '').trim(); // Nombre del Paso a Desnivel / Intercambio
-        let colC = String(row[2] || '').trim(); // Dirección
-        let colD = String(row[3] || '').trim(); // Distrito
-        let colE = String(row[4] || '').trim(); // Peligro Inundación
-        let colF = String(row[5] || '').trim(); // Peligro Huaycos
-        let colG = row[6];                      // Latitud
-        let colH = row[7];                      // Longitud
+    lista.forEach(pt => {
+        let colorInun = getColorPeligro(pt.inun);
+        let colorHuay = getColorPeligro(pt.huay);
 
-        let lat = normalizarNum(colG);
-        let lon = normalizarNum(colH);
-
-        // Descartar encabezados, títulos y filas de métricas
-        if (isNaN(lat) || isNaN(lon)) return;
-        if (Math.abs(lat) > 90 || Math.abs(lon) > 180) return;
-        if (!colB || normalizarTexto(colB).includes('PASO A DESNIVEL') && normalizarTexto(colB).includes('INTERCAMBIO') && !colB.includes('-')) return;
-
-        let colorInun = getColorPeligro(colE);
-        let colorHuay = getColorPeligro(colF);
-
-        // Icono de alerta con zIndexOffset superior (3000) por encima de todo
         const iconAlerta = L.divIcon({
             className: 'custom-punto-critico-icon',
             html: `
                 <div class="punto-critico-pin-wrapper">
-                    <div class="punto-critico-pin" title="${colB}">⚠️</div>
+                    <div class="punto-critico-pin" title="${pt.name}">⚠️</div>
                 </div>
             `,
             iconSize: [26, 26],
@@ -392,34 +379,32 @@ function construirCapaPuntosCriticos(filas) {
 
         const popupHtml = `
             <div class="popup-punto-critico">
-                <div class="popup-punto-critico-title">⚠️ ${colB}</div>
-                <div class="popup-punto-critico-row"><b>Dirección:</b> ${colC || 'No especificada'}</div>
-                <div class="popup-punto-critico-row"><b>Distrito:</b> ${colD || 'Lima / Callao'}</div>
+                <div class="popup-punto-critico-title">⚠️ ${pt.name}</div>
+                <div class="popup-punto-critico-row"><b>Dirección:</b> ${pt.dir || 'No especificada'}</div>
+                <div class="popup-punto-critico-row"><b>Distrito:</b> ${pt.dist || 'Lima / Callao'}</div>
                 <div class="popup-punto-critico-row">
                     <b>Peligro Inundación:</b> 
-                    <span class="popup-punto-critico-badge" style="background-color: ${colorInun};">${colE || 'N/D'}</span>
+                    <span class="popup-punto-critico-badge" style="background-color: ${colorInun};">${pt.inun || 'N/D'}</span>
                 </div>
                 <div class="popup-punto-critico-row">
                     <b>Peligro Huaycos:</b> 
-                    <span class="popup-punto-critico-badge" style="background-color: ${colorHuay};">${colF || 'N/D'}</span>
+                    <span class="popup-punto-critico-badge" style="background-color: ${colorHuay};">${pt.huay || 'N/D'}</span>
                 </div>
                 <div class="popup-punto-critico-row" style="font-size: 0.72rem; color: #666; margin-top: 6px;">
-                    <b>Coords:</b> ${lat.toFixed(4)}, ${lon.toFixed(4)}
+                    <b>Coords:</b> ${pt.lat.toFixed(4)}, ${pt.lon.toFixed(4)}
                 </div>
             </div>
         `;
 
-        const marker = L.marker([lat, lon], {
+        const marker = L.marker([pt.lat, pt.lon], {
             icon: iconAlerta,
             zIndexOffset: 3000
         });
 
         marker.bindPopup(popupHtml);
         layerPuntosCriticos.addLayer(marker);
-        bypassesDataMaster.push({ colB, colC, colD, colE, colF, lat, lon });
     });
 
-    // Validar si el checkbox estaba marcado al iniciar
     const chk = document.getElementById('chkPuntosCriticos');
     const chkMob = document.getElementById('chkPuntosCriticosMob');
     if ((chk && chk.checked) || (chkMob && chkMob.checked)) {
@@ -427,7 +412,62 @@ function construirCapaPuntosCriticos(filas) {
     }
 }
 
-iniciarCargaPuntosCriticos();
+// Renderizado inmediato del dataset base para garantizar visibilidad instantánea
+renderizarPuntosCriticos(puntosCriticosDataset);
+
+// Sincronización en tiempo real con la pestaña PTOS_CRI publicada (gid=1334052525)
+const csvPuntosCriticosUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTE27I4VwWlYKQEgCkNRcGydFG8zFseeR5_0SFF3F_-HEW_VLBPUY_G8uCuexKw2NkkIEq3Wl1i7ipE/pub?gid=1334052525&single=true&output=csv';
+
+function sincronizarPuntosCriticosEnVivo() {
+    if (typeof Papa === 'undefined') {
+        setTimeout(sincronizarPuntosCriticosEnVivo, 150);
+        return;
+    }
+    Papa.parse(csvPuntosCriticosUrl, {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+            let remotos = [];
+            results.data.forEach(row => {
+                let keys = Object.keys(row);
+                let nameKey = keys.find(k => normalizarTexto(k).includes('PASO A DESNIVEL') || normalizarTexto(k).includes('INTERCAMBIO')) || keys[1];
+                let dirKey = keys.find(k => normalizarTexto(k).includes('DIRECCION') || normalizarTexto(k).includes('INTERSECCION')) || keys[2];
+                let distKey = keys.find(k => normalizarTexto(k).includes('DISTRITO')) || keys[3];
+                let inunKey = keys.find(k => normalizarTexto(k).includes('INUNDACION')) || keys[4];
+                let huayKey = keys.find(k => normalizarTexto(k).includes('HUAYCO')) || keys[5];
+                let latKey = keys.find(k => normalizarTexto(k).includes('LATITUD')) || keys[6];
+                let lonKey = keys.find(k => normalizarTexto(k).includes('LONGITUD')) || keys[7];
+
+                let lat = parsearCoordDecimal(row[latKey]);
+                let lon = parsearCoordDecimal(row[lonKey]);
+
+                if (isNaN(lat) || isNaN(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return;
+                let nombre = String(row[nameKey] || '').trim();
+                if (!nombre) return;
+
+                remotos.push({
+                    name: nombre,
+                    dir: String(row[dirKey] || '').trim(),
+                    dist: String(row[distKey] || '').trim(),
+                    inun: String(row[inunKey] || '').trim(),
+                    huay: String(row[huayKey] || '').trim(),
+                    lat: lat,
+                    lon: lon
+                });
+            });
+
+            if (remotos.length > 0) {
+                renderizarPuntosCriticos(remotos);
+            }
+        },
+        error: function(err) {
+            console.warn("Operando con dataset respaldado de Puntos Críticos:", err);
+        }
+    });
+}
+
+sincronizarPuntosCriticosEnVivo();
 
 function manejarPuntosCriticos(e) {
     const checked = e.target.checked;
